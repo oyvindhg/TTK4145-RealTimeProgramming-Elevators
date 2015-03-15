@@ -6,35 +6,35 @@ import (
 
 type TimerInput struct {
 	TimeDuration int
-	Scope string
+	Scope Duration
 	Type string
 }
 
-func InitTimer(timerChan chan TimerInput, timeOutChan chan string) {
+func InitTimer(tickerChan chan string, timerChan chan TimerInput, timeOutChan chan string) {
 	for {
 		select {
 		case input := <- timerChan:
-			if input.Type == "doorOpen" {
+			if input.Type == "door" {
 				go timer(input, timeOutChan)
-			} else {
-				go ticker(input, timeOutChan)
+			} else if input.Type == "alive"{
+				go ticker(input, tickerChan)
 			}
 		}
 	}
 }
 
 func timer(input TimerInput, timeOutChan chan string) {
-	switch {
-	case input.Scope == "Second":
-		Sleep(Duration(input.TimeDuration) * Second)
-	case input.Scope == "Millisecond":
-		Sleep(Duration(input.TimeDuration) * Millisecond)
-	case input.Scope == "Microsecond":
-		Sleep(Duration(input.TimeDuration) * Microsecond)
-	}
+
+	Sleep(Duration(input.TimeDuration) * input.Scope)
+	
 	timeOutChan <- input.Type
 }
 
-func ticker(input TimerInput, timeOutChan chan string) {
+func ticker(input TimerInput, tickerChan chan string) {
+	tick := Tick(Duration(input.TimeDuration) * input.Scope)
+	for now := range tick {
+		tickerChan <- input.Type
+		_ = now
+	}
 	
 }

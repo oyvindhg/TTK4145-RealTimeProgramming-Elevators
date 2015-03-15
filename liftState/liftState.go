@@ -20,7 +20,7 @@ import (
 // computerID, onlineStatus, rank, floorNum, floorTarget, state, inElev[]
 
 
-func liftState(elev[] elevator, outUp[] int, outDown[] int, ownID string, networkReceive chan Message, commanderChan chan Message, aliveChan chan Message, signalChan chan Message, MASTER_INIT_IP string, FLOOR_COUNT int, ELEV_COUNT int) {
+func liftState(elev[] elevator, outUp[] int, outDown[] int, networkReceive chan Message, commanderChan chan Message, aliveChan chan Message, signalChan chan Message, MASTER_INIT_IP string, FLOOR_COUNT int, ELEV_COUNT int) {
 	for{
 		select{
 			case message := <- networkReceive:
@@ -32,18 +32,22 @@ func liftState(elev[] elevator, outUp[] int, outDown[] int, ownID string, networ
 						commanderChan <- message
 
 					case message.Content == "newID": 
+						Println("init1")
 						temp := make([]elevator, len(elev) + 1, cap(elev) + 1)
+						Println(cap(elev))
 						for i := range elev {
 							temp[i] = elev[i]
 						}
 						elev = temp
+						Println(len(elev))
 						elev[len(elev) - 1].computerID = message.SenderID
 						elev[len(elev) - 1].onlineStatus = true
 						elev[len(elev) - 1].rank = len(elev)   					//NEED BETTER RANK ALGORITHM
 						elev[len(elev) - 1].floorNum = 0
 						elev[len(elev) - 1].floorTarget = 0
 						elev[len(elev) - 1].state = "Idle"
-						elev[len(elev) - 1].inElev = make([]int, FLOOR_COUNT)		
+						elev[len(elev) - 1].inElev = make([]int, FLOOR_COUNT)
+						Println("elev1 = ", elev[len(elev) - 1])		
 
 					case message.Content == "connectionChange":
 						elev[message.ElevNumber].onlineStatus = message.Online
@@ -86,12 +90,14 @@ func liftState(elev[] elevator, outUp[] int, outDown[] int, ownID string, networ
 	}
 }
 
-func InitLiftState(networkReceive chan Message, commanderChan chan Message, aliveChan chan Message, signalChan chan Message, MASTER_INIT_IP string, PORT string, FLOOR_COUNT int, ELEV_COUNT int){
+func InitLiftState(networkReceive chan Message, commanderChan chan Message, aliveChan chan Message, signalChan chan Message, requestChan chan Request, replyChan chan Reply, MASTER_INIT_IP string, PORT string, FLOOR_COUNT int, ELEV_COUNT int){
 	elev := make([]elevator, 1)
+	Println("init0")
 	outUp 	:= make([]int, FLOOR_COUNT - 1)
 	outDown	:= make([]int, FLOOR_COUNT - 1)
-	ownID := ""
 	addresses, err := net.InterfaceAddrs()
+	elev[0].onlineStatus = true
+
 	if err != nil {
 		Println("Address error: ", err)
 	}
@@ -99,13 +105,32 @@ func InitLiftState(networkReceive chan Message, commanderChan chan Message, aliv
 	for _, address := range addresses {
 		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 			if ipnet.IP.To4() != nil {
-				ownID = ipnet.IP.String()+ PORT
-				elev[0].computerID = ownID
+				elev[0].computerID = ipnet.IP.String()+ PORT
 			}
 		}
 	}
 
-	go liftState(elev, outUp, outDown, ownID, networkReceive, commanderChan, aliveChan, signalChan, MASTER_INIT_IP, FLOOR_COUNT, ELEV_COUNT)
+	go liftState(elev, outUp, outDown, networkReceive, commanderChan, aliveChan, signalChan, MASTER_INIT_IP, FLOOR_COUNT, ELEV_COUNT)
+	go requestHandler(requestChan, replyChan, elev, outUp, outDown)
+}
+
+func requestHandler(requestChan chan Request, replyChan chan Reply, elev[] elevator, outUp[] int, outDown[] int) {
+	reply := Reply{"", 0}
+	Println("requestHandler")
+	for {
+		select {
+		case request := <- requestChan:
+			switch {
+				case request.Type == "elevCount":
+					Println(len(elev))
+					reply.Number = len(elev)
+					replyChan <- reply
+				case request.Type == "computerID":
+					reply.Answer = elev[0].computerID//elev[request.ElevNumber].computerID
+					replyChan <- reply
+			}
+		}
+	}
 }
 
 type elevator struct {
@@ -116,4 +141,14 @@ type elevator struct {
 	floorTarget int
 	state string		//Idle, Open, MovingUp, MovingDown
 	inElev[] int
+}
+
+type Request struct {
+	Type string
+	ElevNumber int
+}
+
+type Reply struct {
+	Answer string
+	Number int
 }

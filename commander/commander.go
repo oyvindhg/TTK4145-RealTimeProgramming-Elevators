@@ -3,9 +3,10 @@ package commander
 import (
 	"net"
 	."fmt"
+	."time"
 	."../timer"
 	."../network"
-	//."../liftState"
+	."../liftState"
 	//."../driver"
 )
 
@@ -15,7 +16,7 @@ type DriverSignal struct{
 	Engine string
 }
 
-func InitCommander(commanderChan chan Message, aliveChan chan Message, signalChan chan Message, timerChan chan TimerInput, timeOutChan chan string, driverInChan chan DriverSignal, driverOutChan chan DriverSignal, fetchChan chan Message, MASTER_INIT_IP string, PORT string, FLOOR_COUNT int, ELEV_COUNT int) {
+func InitCommander(networkSend chan Message, commanderChan chan Message, aliveChan chan Message, signalChan chan Message, tickerChan chan string, timerChan chan TimerInput, timeOutChan chan string, driverInChan chan DriverSignal, driverOutChan chan DriverSignal, requestChan chan Request, replyChan chan Reply, MASTER_INIT_IP string, PORT string, FLOOR_COUNT int, ELEV_COUNT int) {
 	ownIP := ""
 	addresses, err := net.InterfaceAddrs()
 	if err != nil {
@@ -29,20 +30,25 @@ func InitCommander(commanderChan chan Message, aliveChan chan Message, signalCha
 			}
 		}
 	}
-
 	if ownIP == MASTER_INIT_IP  {
-		go master(commanderChan, aliveChan, signalChan, timerChan, timeOutChan, driverInChan, driverOutChan, fetchChan)
+		go master(networkSend, commanderChan, aliveChan, signalChan, tickerChan, timerChan, timeOutChan, driverInChan, driverOutChan, requestChan, replyChan)
 	}
-	go commander(commanderChan, aliveChan, signalChan, timerChan, timeOutChan, driverInChan, driverOutChan, fetchChan)
+	go commander(commanderChan, aliveChan, signalChan, tickerChan, timerChan, timeOutChan, driverInChan, driverOutChan, requestChan, replyChan)
+	timerChan <- TimerInput{150, Millisecond, "alive"}
 }
 
-func commander(commanderChan chan Message, aliveChan chan Message, signalChan chan Message, timerChan chan TimerInput, timeOutChan chan string, driverInChan chan DriverSignal, driverOutChan chan DriverSignal, fetcChan chan Message) {
+func commander(commanderChan chan Message, aliveChan chan Message, signalChan chan Message, tickerChan chan string, timerChan chan TimerInput, timeOutChan chan string, driverInChan chan DriverSignal, driverOutChan chan DriverSignal, requestChan chan Request, replyChan chan Reply) {
+	notAliveCount := 0
 	for {
-		select { //LEGG TIL FLOORREACHED CASE
-		case alive := <- aliveChan:
-			timerInput := TimerInput{25000, "Millisecond", ""}
-			timerChan <- timerInput
-			Println(alive)
+		select { 							// ADD FLOORREACHED CASE
+		case <- tickerChan:
+			if notAliveCount == 3 {
+				Println("Master dead!")		// IMPLEMENT PANIC
+			}
+			notAliveCount++
+			
+		case <- aliveChan:
+			notAliveCount = 0
 
 		case command := <- commanderChan:
 			Println(command)
@@ -60,6 +66,37 @@ func commander(commanderChan chan Message, aliveChan chan Message, signalChan ch
 	}
 }
 
-func master(commanderChan chan Message, aliveChan chan Message, signalChan chan Message, timerChan chan TimerInput, timeOutChan chan string, driverInChan chan DriverSignal, driverOutChan chan DriverSignal, fetcChan chan Message) {
+func master(networkSend chan Message, commanderChan chan Message, aliveChan chan Message, signalChan chan Message, tickerChan chan string, timerChan chan TimerInput, timeOutChan chan string, driverInChan chan DriverSignal, driverOutChan chan DriverSignal, requestChan chan Request, replyChan chan Reply) {
+	go aliveBroadcast(networkSend, tickerChan, requestChan, replyChan)
 	Println("Master")
 }
+
+func aliveBroadcast(networkSend chan Message, tickerChan chan string, requestChan chan Request, replyChan chan Reply) {
+	Sleep(100 * Millisecond)		// Give enough time for the other elevators to connect
+	requestChan <- Request{"elevCount", 0}
+	reply := <- replyChan
+	elevCount := reply.Number
+	computerIDs := make([]string, elevCount)
+	Println(elevCount)
+	Println(computerIDs)
+	for i := 1; i < elevCount; i++ {
+		requestChan <- Request{"computerID", i}
+		reply = <- replyChan
+		computerIDs[i] = reply.Answer
+	}
+	for {
+		for j := 1; j < elevCount; j++ {
+			networkSend <- Message{computerIDs[j], "", "imAlive", "", 1, true, 1, 1, "", ""}
+			Println("alive")
+		}
+		Sleep(100 * Millisecond)
+	}
+}
+
+// Content = "imAlive", "newElev", "newOrder", "deleteOrder", "newTarget", rankChange",
+//           "stateUpdate", "connectionChange", "command", "taskDone", "floorReached"
+
+// RecipientID, SenderID, Content, Command, ElevNumber,
+// Online, Rank, FloorNumber, ButtonType, State
+
+// computerID, onlineStatus, rank, floorNum, floorTarget, state, inElev[]

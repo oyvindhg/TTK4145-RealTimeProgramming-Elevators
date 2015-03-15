@@ -2,8 +2,9 @@ package main
 
 import(
 	."fmt"
-	."time"
+	//."time"
 	."./timer"
+	//."./driver"
 	."./network"
 	."./liftState"
 	."./commander"
@@ -19,7 +20,7 @@ import(
 
 const ELEV_COUNT = 3
 const FLOOR_COUNT = 4
-const MASTER_INIT_IP = "129.241.187.147"
+const MASTER_INIT_IP = "192.168.1.157"
 const PORT = ":20007"
 
 func main(){
@@ -29,16 +30,18 @@ func main(){
 	commanderChan := make(chan Message)
 	aliveChan := make(chan Message)
 	signalChan := make(chan Message)
+	tickerChan := make(chan string)
 	timerChan := make(chan TimerInput)
 	timeOutChan := make(chan string)
 	driverInChan := make(chan DriverSignal)
 	driverOutChan := make(chan DriverSignal)
-	fetchChan := make(chan Message)
+	requestChan := make(chan Request)
+	replyChan := make(chan Reply)
 
-	//go InitTimer(timerChan, timeOutChan)
+	go InitTimer(tickerChan, timerChan, timeOutChan)
 	go InitNetwork(PORT, networkReceive, networkSend)
-	go InitLiftState(networkReceive, commanderChan, aliveChan, signalChan, MASTER_INIT_IP, PORT, FLOOR_COUNT, ELEV_COUNT)
-	go InitCommander(commanderChan, aliveChan, signalChan, timerChan, timeOutChan, driverInChan, driverOutChan, fetchChan, MASTER_INIT_IP, PORT, FLOOR_COUNT, ELEV_COUNT)
+	go InitLiftState(networkReceive, commanderChan, aliveChan, signalChan, requestChan, replyChan, MASTER_INIT_IP, PORT, FLOOR_COUNT, ELEV_COUNT)
+	go InitCommander(networkSend, commanderChan, aliveChan, signalChan, tickerChan, timerChan, timeOutChan, driverInChan, driverOutChan, requestChan, replyChan, MASTER_INIT_IP, PORT, FLOOR_COUNT, ELEV_COUNT)
 
 	go sendStuff(networkSend)
 
@@ -48,8 +51,6 @@ func main(){
 		select{
 			case driver := <- driverOutChan:
 				Println(driver.SignalType, driver.FloorNumber)
-			case timerOut := <- timeOutChan:
-				Println(timerOut)
 		}
 	}
 }
@@ -57,12 +58,13 @@ func main(){
 func sendStuff(networkSend chan Message){
 	
 	initElev1 := Message{MASTER_INIT_IP+ PORT, "", "newID", "", 0, false, 0, 0, "", ""}
-	message := Message{PORT, "", "newOrder", "", 1, false, 0, 2, "inside", ""}
+	//message := Message{PORT, "", "imAlive", "", 1, false, 1, 1, "", ""}
 
-	Sleep(1*Second)
+	//Sleep(1*Millisecond)
 	networkSend <- initElev1
-	for i := 0; i < 2; i++ {
+	/*
+	for i := 0; i < 1; i++ {
 		Sleep(1*Second)
 		networkSend <- message
-	}
+	}*/
 }
