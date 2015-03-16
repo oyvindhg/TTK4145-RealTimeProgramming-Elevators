@@ -77,8 +77,6 @@ func aliveBroadcast(networkSend chan Message, tickerChan chan string, requestCha
 	reply := <- replyChan
 	elevCount := reply.Number
 	computerIDs := make([]string, elevCount)
-	Println(elevCount)
-	Println(computerIDs)
 	for i := 1; i < elevCount; i++ {
 		requestChan <- Request{"computerID", i}
 		reply = <- replyChan
@@ -87,7 +85,6 @@ func aliveBroadcast(networkSend chan Message, tickerChan chan string, requestCha
 	for {
 		for j := 1; j < elevCount; j++ {
 			networkSend <- Message{computerIDs[j], "", "imAlive", "", 1, true, 1, 1, "", ""}
-			Println("alive")
 		}
 		Sleep(100 * Millisecond)
 	}

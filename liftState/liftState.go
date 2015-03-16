@@ -47,7 +47,8 @@ func liftState(elev[] elevator, outUp[] int, outDown[] int, networkReceive chan 
 						elev[len(elev) - 1].floorTarget = 0
 						elev[len(elev) - 1].state = "Idle"
 						elev[len(elev) - 1].inElev = make([]int, FLOOR_COUNT)
-						Println("elev1 = ", elev[len(elev) - 1])		
+						Println("elev0 =", elev[0])
+						Println("elev1 =", elev[len(elev) - 1])		
 
 					case message.Content == "connectionChange":
 						elev[message.ElevNumber].onlineStatus = message.Online
@@ -91,12 +92,18 @@ func liftState(elev[] elevator, outUp[] int, outDown[] int, networkReceive chan 
 }
 
 func InitLiftState(networkReceive chan Message, commanderChan chan Message, aliveChan chan Message, signalChan chan Message, requestChan chan Request, replyChan chan Reply, MASTER_INIT_IP string, PORT string, FLOOR_COUNT int, ELEV_COUNT int){
-	elev := make([]elevator, 1)
-	Println("init0")
+	elev := make([]elevator, 2)
 	outUp 	:= make([]int, FLOOR_COUNT - 1)
 	outDown	:= make([]int, FLOOR_COUNT - 1)
 	addresses, err := net.InterfaceAddrs()
 	elev[0].onlineStatus = true
+
+	elev[1].computerID = "192.168.1.157"
+	elev[1].onlineStatus = true
+	elev[1].rank = 1
+	elev[1].floorNum = 0
+	elev[1].floorTarget = 0
+	elev[1].state = "Idle"
 
 	if err != nil {
 		Println("Address error: ", err)
@@ -122,7 +129,6 @@ func requestHandler(requestChan chan Request, replyChan chan Reply, elev[] eleva
 		case request := <- requestChan:
 			switch {
 				case request.Type == "elevCount":
-					Println(len(elev))
 					reply.Number = len(elev)
 					replyChan <- reply
 				case request.Type == "computerID":
