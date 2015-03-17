@@ -4,7 +4,6 @@ import (
 	"net"
 	."fmt"
 	."time"
-	."../timer"
 	."../network"
 	."../liftState"
 	."../driver"

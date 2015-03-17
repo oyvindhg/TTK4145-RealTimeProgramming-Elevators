@@ -1,9 +1,5 @@
 package driver  // where "driver" is the folder that contains io.go, io.c, io.h, channels.go, channels.c and driver.go
 
-import (
-	."../commander"
-)
-
 const N_BUTTONS = 3
 const N_FLOORS = 4
 
@@ -65,7 +61,7 @@ func driverReader(driverInChan chan DriverSignal) {
 						case i == 1:
 							driverInChan <- DriverMessage{"outsideDown", j, 1}
 						}
-						buttonSignalLastChec = 1
+						buttonSignalLastCheck = 1
 					} else if buttonSignalLastCheck == 1 {
 						buttonSignalLastCheck = 0
 					}
