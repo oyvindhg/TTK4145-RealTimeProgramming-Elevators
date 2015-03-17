@@ -4,7 +4,7 @@ import(
 	."fmt"
 	//."time"
 	."./timer"
-	//."./driver"
+	."./driver"
 	."./network"
 	."./liftState"
 	."./commander"
@@ -38,6 +38,10 @@ func main(){
 	requestChan := make(chan Request)
 	replyChan := make(chan Reply)
 
+	if !DriverInit(driverInChan, driverOutChan) {
+		Println("Driver init failed!")
+		break
+	}
 	go InitTimer(tickerChan, timerChan, timeOutChan)
 	go InitNetwork(PORT, networkReceive, networkSend)
 	go InitLiftState(networkReceive, commanderChan, aliveChan, signalChan, requestChan, replyChan, MASTER_INIT_IP, PORT, FLOOR_COUNT, ELEV_COUNT)

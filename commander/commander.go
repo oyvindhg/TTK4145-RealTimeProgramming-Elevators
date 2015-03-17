@@ -7,13 +7,13 @@ import (
 	."../timer"
 	."../network"
 	."../liftState"
-	//."../driver"
+	."../driver"
 )
 
 type DriverSignal struct{
 	SignalType string  // engine, floorReached, inside, outsideUp, outsideDown, stop, obstr
 	FloorNumber int
-	Engine string
+	Value int
 }
 
 func InitCommander(networkSend chan Message, commanderChan chan Message, aliveChan chan Message, signalChan chan Message, tickerChan chan string, timerChan chan TimerInput, timeOutChan chan string, driverInChan chan DriverSignal, driverOutChan chan DriverSignal, requestChan chan Request, replyChan chan Reply, MASTER_INIT_IP string, PORT string, FLOOR_COUNT int, ELEV_COUNT int) {

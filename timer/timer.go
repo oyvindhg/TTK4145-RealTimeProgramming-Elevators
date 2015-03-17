@@ -14,23 +14,24 @@ func InitTimer(tickerChan chan string, timerChan chan TimerInput, timeOutChan ch
 	for {
 		select {
 		case input := <- timerChan:
-			if input.Type == "door" {
-				go timer(input, timeOutChan)
-			} else if input.Type == "alive"{
-				go ticker(input, tickerChan)
+			switch {
+			case input.Type == "door":
+				go doorTimer(input, timeOutChan)
+			case input.Type == "alive":
+				go aliveTicker(input, tickerChan)
 			}
 		}
 	}
 }
 
-func timer(input TimerInput, timeOutChan chan string) {
+func doorTimer(input TimerInput, timeOutChan chan string) {
 
 	Sleep(Duration(input.TimeDuration) * input.Scope)
 	
 	timeOutChan <- input.Type
 }
 
-func ticker(input TimerInput, tickerChan chan string) {
+func aliveTicker(input TimerInput, tickerChan chan string) {
 	tick := Tick(Duration(input.TimeDuration) * input.Scope)
 	for now := range tick {
 		tickerChan <- input.Type

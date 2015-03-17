@@ -10,7 +10,6 @@ const BUTTON_COMMAND3 = (0x300+19)
 const BUTTON_COMMAND4 = (0x300+18)
 const BUTTON_UP1 = (0x300+17)
 const BUTTON_UP2 = (0x300+16)
-
 //in port 1
 const PORT1 = 2
 const BUTTON_DOWN2 = (0x200+0)
@@ -32,7 +31,6 @@ const LIGHT_COMMAND3 = (0x300+11)
 const LIGHT_COMMAND4 = (0x300+10)
 const LIGHT_UP1 = (0x300+9)
 const LIGHT_UP2 = (0x300+8)
-
 //out port 2
 const PORT2 = 3
 const LIGHT_DOWN2 = (0x300+7)
@@ -42,7 +40,6 @@ const LIGHT_DOWN4 = (0x300+4)
 const LIGHT_DOOR_OPEN = (0x300+3)
 const LIGHT_FLOOR_IND2 = (0x300+1)
 const LIGHT_FLOOR_IND1 = (0x300+0)
-
 //out port 0
 const PORT0 = 1
 const MOTOR = (0x100+0)
