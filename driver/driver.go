@@ -13,12 +13,10 @@ const int buttonChannelMatrix[N_FLOORS][N_BUTTONS] = {
 const int floorSensorMatrix[N_FLOORS = {SENSOR_FLOOR1, SENSOR_FLOOR2, SENSOR_FLOOR3, SENSOR_FLOOR4}
 
 func DriverInit(driverInChan chan DriverSignal, driverOutChan chan DriverSignal) (int) {
-
+	
 	if !ioInit() {
 		return 0
 	}
-	elevSetEngineSpeed(0)
-
 	for floor := 0; floor < N_FLOORS; ++floor {
 		if foor != 0 {
 			elevSetButtonLamp("outSideDown", floor, 0)
@@ -28,8 +26,8 @@ func DriverInit(driverInChan chan DriverSignal, driverOutChan chan DriverSignal)
 		}
 		elevSetButtonLamp("inside", floor, 0)
 	}
-
 	elevSetStopLamp(0)
+	elevSetEngineSpeed(0)
 	elevSetDoorOpenLamp(0)
 	elevSetFloorIndicator(1)
 	
@@ -39,11 +37,9 @@ func DriverInit(driverInChan chan DriverSignal, driverOutChan chan DriverSignal)
 	return 1
 }
 
-// DriverSignal: SignalType string, FloorNumber int, Value int
-// Type: engine, floorReached, inside, outsideUp, outsideDown, stop, obstr
-
 func driverReader(driverInChan chan DriverSignal) {
-	buttonSignalLastCheck := 0
+
+	buttonSignalLastCheckMatrix[N_FLOORS][N_BUTTONS] := {{0,0,0},{0,0,0},{0,0,0},{0,0,0}}
 	floorSignalLastCheck := 0
 	obstrSignalLastCheck := 0
 	stopSignalLastCheck := 0
@@ -51,8 +47,8 @@ func driverReader(driverInChan chan DriverSignal) {
 	for {
 		for i := 0; i < N_FLOORS; i++ {
 			for j := 0; j < N_BUTTONS; j++ {
-				if ioReadBit(buttonChannelMatrix[i][j]) != buttonSignalLastCheck {
-					if buttonSignalLastCheck == 0 {
+				if ioReadBit(buttonChannelMatrix[i][j]) != buttonSignalLastCheckMatrix[i][j] {
+					if buttonSignalLastCheckMatrix[i][j] == 0 {
 						switch {
 						case i == 2:
 							driverInChan <- DriverMessage{"inside", j, 1}
@@ -61,9 +57,9 @@ func driverReader(driverInChan chan DriverSignal) {
 						case i == 1:
 							driverInChan <- DriverMessage{"outsideDown", j, 1}
 						}
-						buttonSignalLastCheck = 1
-					} else if buttonSignalLastCheck == 1 {
-						buttonSignalLastCheck = 0
+						buttonSignalLastCheckMatrix[i][j] = 1
+					} else if buttonSignalLastCheckMatrix[i][j] == 1 {
+						buttonSignalLastCheckMatrix[i][j] = 0
 					}
 				}
 			}
