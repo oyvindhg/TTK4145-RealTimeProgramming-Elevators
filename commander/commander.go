@@ -4,16 +4,11 @@ import (
 	"net"
 	."fmt"
 	."time"
+	."../timer"
 	."../network"
 	."../liftState"
 	."../driver"
 )
-
-type DriverSignal struct{
-	SignalType string  // engine, floorReached, inside, outsideUp, outsideDown, stop, obstr
-	FloorNumber int
-	Value int
-}
 
 func InitCommander(networkSend chan Message, commanderChan chan Message, aliveChan chan Message, signalChan chan Message, tickerChan chan string, timerChan chan TimerInput, timeOutChan chan string, driverInChan chan DriverSignal, driverOutChan chan DriverSignal, requestChan chan Request, replyChan chan Reply, MASTER_INIT_IP string, PORT string, FLOOR_COUNT int, ELEV_COUNT int) {
 	ownIP := ""
@@ -50,11 +45,24 @@ func commander(commanderChan chan Message, aliveChan chan Message, signalChan ch
 			notAliveCount = 0
 
 		case command := <- commanderChan:
-			Println(command)
+			switch {
+				case command.Content == "command":
+					if command.Command == "up" {
+						driverOutChan <- DriverSignal{"engine", 0, 1}
+						Println("going up")
+					} else if command.Command == "down" {
+						driverOutChan <- DriverSignal{"engine", 0, -1}
+					} else if command.Command == "stop" {
+						driverOutChan <- DriverSignal{"engine", 0, 0}
+					}
+				case command.Content == "taskDone":
+					Println("taskDone")
+			}
+					
 
 		case signal := <- signalChan:
 			Println(signal)
-			driverOutChan <- DriverSignal{signal.ButtonType, signal.FloorNumber, ""}
+			driverOutChan <- DriverSignal{signal.ButtonType, signal.FloorNumber, 0}
 
 		case timeOut := <- timeOutChan:
 			Println(timeOut)
@@ -96,3 +104,10 @@ func aliveBroadcast(networkSend chan Message, tickerChan chan string, requestCha
 // Online, Rank, FloorNumber, ButtonType, State
 
 // computerID, onlineStatus, rank, floorNum, floorTarget, state, inElev[]
+
+/*
+type DriverSignal struct{
+	SignalType string  // engine, floorReached, inside, outsideUp, outsideDown, stop, obstr
+	FloorNumber int
+	Value int
+}*/

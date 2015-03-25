@@ -7,7 +7,6 @@
 #include "io.h"
 #include "channels.h"
 #include <comedilib.h>
-
 static comedi_t *it_g = NULL;
 
 

@@ -12,6 +12,9 @@ Initialize libComedi in "Sanntidssalen"
 @return Non-zero on success and 0 on failure
 */
 
+int channel;
+int value;
+
 int io_init();
 /**
 Sets a digital channel bit.

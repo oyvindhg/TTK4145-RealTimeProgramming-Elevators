@@ -32,14 +32,14 @@ func liftState(elev[] elevator, outUp[] int, outDown[] int, networkReceive chan 
 						commanderChan <- message
 
 					case message.Content == "newID": 
-						Println("init1")
+
 						temp := make([]elevator, len(elev) + 1, cap(elev) + 1)
-						Println(cap(elev))
+
 						for i := range elev {
 							temp[i] = elev[i]
 						}
 						elev = temp
-						Println(len(elev))
+
 						elev[len(elev) - 1].computerID = message.SenderID
 						elev[len(elev) - 1].onlineStatus = true
 						elev[len(elev) - 1].rank = len(elev)   					//NEED BETTER RANK ALGORITHM
@@ -47,8 +47,7 @@ func liftState(elev[] elevator, outUp[] int, outDown[] int, networkReceive chan 
 						elev[len(elev) - 1].floorTarget = 0
 						elev[len(elev) - 1].state = "Idle"
 						elev[len(elev) - 1].inElev = make([]int, FLOOR_COUNT)
-						Println("elev0 =", elev[0])
-						Println("elev1 =", elev[len(elev) - 1])		
+	
 
 					case message.Content == "connectionChange":
 						elev[message.ElevNumber].onlineStatus = message.Online
@@ -123,7 +122,6 @@ func InitLiftState(networkReceive chan Message, commanderChan chan Message, aliv
 
 func requestHandler(requestChan chan Request, replyChan chan Reply, elev[] elevator, outUp[] int, outDown[] int) {
 	reply := Reply{"", 0}
-	Println("requestHandler")
 	for {
 		select {
 		case request := <- requestChan:
