@@ -36,7 +36,7 @@ func commander(commanderChan chan Message, aliveChan chan Message, signalChan ch
 	for {
 		select { 							// ADD FLOORREACHED CASE
 		case <- tickerChan:
-			if notAliveCount == 3 {
+			if notAliveCount == 10 {
 				Println("Master dead!")		// IMPLEMENT PANIC
 			}
 			notAliveCount++

@@ -20,8 +20,8 @@ import(
 
 const ELEV_COUNT = 3
 const FLOOR_COUNT = 4
-const MASTER_INIT_IP = "129.241.187.152"
-const PORT = ":20013"
+const MASTER_INIT_IP = "129.241.187.146"
+const PORT = ":20006"
 
 func main(){
 
@@ -64,11 +64,8 @@ func main(){
 func sendStuff(networkSend chan Message){
 	
 	initElev1 := Message{MASTER_INIT_IP+ PORT, "", "newID", "", 0, false, 0, 0, "", ""}
-	message := Message{PORT, "", "command", "up", 1, false, 1, 4, "", ""}
+	//message := Message{PORT, "", "command", "up", 1, false, 1, 4, "", ""}
 	networkSend <- initElev1
-	Sleep(1*Millisecond)
-	networkSend <- message
-	
 }
 
 // Content = "imAlive", "newElev", "newOrder", "deleteOrder", "newTarget", rankChange",

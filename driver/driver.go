@@ -1,6 +1,6 @@
 package driver  // where "driver" is the folder that contains io.go, io.c, io.h, channels.go, channels.c and driver.go
 
-import ."fmt"
+//import ."fmt"
 
 const N_BUTTONS = 3
 const N_FLOORS = 4
@@ -12,6 +12,14 @@ type DriverSignal struct{
 }
 
 func DriverInit(driverInChan chan DriverSignal, driverOutChan chan DriverSignal) (bool) {
+
+	floorSensors := []int{SENSOR_FLOOR1, SENSOR_FLOOR2, SENSOR_FLOOR3, SENSOR_FLOOR4}
+
+	buttonChannelMatrix := [][]int{
+		{BUTTON_UP1, BUTTON_DOWN1, BUTTON_COMMAND1},
+		{BUTTON_UP2, BUTTON_DOWN2, BUTTON_COMMAND2},
+		{BUTTON_UP3, BUTTON_DOWN3, BUTTON_COMMAND3},
+		{BUTTON_UP4, BUTTON_DOWN4, BUTTON_COMMAND4},}
 	
 	if !IOInit() {
 		return false
@@ -29,25 +37,25 @@ func DriverInit(driverInChan chan DriverSignal, driverOutChan chan DriverSignal)
 	elevSetEngineSpeed(0)
 	elevSetDoorOpenLamp(0)
 	elevSetFloorIndicator(1)
-	
-	go driverReader(driverInChan)
+	inFloor := 0
+	for i := 0; i < N_FLOORS; i++ {
+		if IOReadBit(floorSensors[i]) != 0 {
+			inFloor = 1
+		}
+	}
+	if inFloor == 0 {
+		elevSetEngineSpeed(-1)
+	}
+	go driverReader(driverInChan, floorSensors, buttonChannelMatrix)
 	go driverWriter(driverOutChan)
 
 	return true
 }
 
-func driverReader(driverInChan chan DriverSignal) {
-
-	floorSensorMatrix := []int{SENSOR_FLOOR1, SENSOR_FLOOR2, SENSOR_FLOOR3, SENSOR_FLOOR4}
-
-	buttonChannelMatrix := [][]int{
-		{BUTTON_UP1, BUTTON_DOWN1, BUTTON_COMMAND1},
-		{BUTTON_UP2, BUTTON_DOWN2, BUTTON_COMMAND2},
-		{BUTTON_UP3, BUTTON_DOWN3, BUTTON_COMMAND3},
-		{BUTTON_UP4, BUTTON_DOWN4, BUTTON_COMMAND4},}
+func driverReader(driverInChan chan DriverSignal, floorSensors[] int, buttonChannelMatrix[][] int) {
 	
 	buttonSignalLastCheckMatrix := [][]int{{0,0,0},{0,0,0},{0,0,0},{0,0,0}}
-	floorSignalLastCheck := 0
+	floorSignalLastCheck := []int{0,0,0,0}
 	obstrSignalLastCheck := 0
 	stopSignalLastCheck := 0
 
@@ -55,7 +63,6 @@ func driverReader(driverInChan chan DriverSignal) {
 		for i := 0; i < N_FLOORS; i++ {
 			for j := 0; j < N_BUTTONS; j++ {
 				if IOReadBit(buttonChannelMatrix[i][j]) != buttonSignalLastCheckMatrix[i][j] {
-Println("readButton")
 					if buttonSignalLastCheckMatrix[i][j] == 0 {
 						switch {
 						case i == 2:
@@ -73,7 +80,6 @@ Println("readButton")
 			}
 		}
 		if IOReadBit(STOP) != stopSignalLastCheck {
-Println("stop")
 			if stopSignalLastCheck == 0 {
 				driverInChan <- DriverSignal{"stop", 0, 1}
 				stopSignalLastCheck = 1
@@ -82,7 +88,6 @@ Println("stop")
 			}
 		}
 		if IOReadBit(OBSTRUCTION) != obstrSignalLastCheck {
-Println("obstr")
 			if obstrSignalLastCheck == 0 {
 				driverInChan <- DriverSignal{"obstr", 0, 1}
 				obstrSignalLastCheck = 1
@@ -92,14 +97,12 @@ Println("obstr")
 		}
 
 		for i := 0; i < N_FLOORS; i++ {
-			if IOReadBit(floorSensorMatrix[i]) != floorSignalLastCheck {
-Println("floor")
-				if floorSignalLastCheck == 0 {
-					Println("floorReached")
-					driverInChan <- DriverSignal{"floorReached", i, 1}
-					floorSignalLastCheck = 1
-				} else if floorSignalLastCheck == 1 {
-					floorSignalLastCheck = 0
+			if IOReadBit(floorSensors[i]) != floorSignalLastCheck[i] {
+				if floorSignalLastCheck[i] == 0 {
+					driverInChan <- DriverSignal{"floorReached", i+1, 1}
+					floorSignalLastCheck[i] = 1
+				} else if floorSignalLastCheck[i] == 1 {
+					floorSignalLastCheck[i] = 0
 				}
 			}
 		}
@@ -113,7 +116,6 @@ func driverWriter(driverOutChan chan DriverSignal) {
 			switch {
 				case command.SignalType == "engine":
 					elevSetEngineSpeed(command.Value)		// 0 = stop, 1 = up, -1 = down
-					Println("engine up")
 				case command.SignalType == "floorReached":
 					elevSetFloorIndicator(command.FloorNumber)
 				case command.SignalType == "inside" || command.SignalType == "outsideUp" || command.SignalType == "outsideDown":
@@ -130,12 +132,11 @@ func elevSetEngineSpeed(value int) {
 	case value == 0:
 		IOWriteAnalog(MOTOR, 0)
 	case value == 1:
-		IOWriteAnalog(MOTORDIR, 1)
-		IOWriteAnalog(MOTOR, 100)
-		Println("engine on")
-	case value == -1:
 		IOWriteAnalog(MOTORDIR, 0)
-		IOWriteAnalog(MOTOR, 100)
+		IOWriteAnalog(MOTOR, 2800)
+	case value == -1:
+		IOWriteAnalog(MOTORDIR, 1)
+		IOWriteAnalog(MOTOR, 2800)
 	}
 }
 
