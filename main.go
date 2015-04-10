@@ -10,6 +10,24 @@ import(
 	."./commander"
 )
 
+// TO DO
+
+// Kostfunksjon i LiftState
+
+// Death panic
+
+// Master sende heisinfo når ny heis kobler seg på til de andre heisene + velkomstpakke til ny heis
+
+// Floor reached case i Commander
+
+// Driverinputs til Commander
+
+// Driveroutputs til Commander
+
+// Dørtimer i Commander
+
+// Task done i Commander
+
 func main(){
 
 

@@ -29,19 +29,22 @@ func Commander(networkSend chan Message, commanderChan chan Message, aliveChan c
 			switch {
 				case command.Content == "imAlive":
 					networkSend <- command
+
 				case command.Content == "newID":
 					networkSend <- command
+
 				case command.Content == "command":
 					if command.Command == "up" {
 						driverOutChan <- DriverSignal{"engine", 0, 1}
-						Println("going up")
 					} else if command.Command == "down" {
 						driverOutChan <- DriverSignal{"engine", 0, -1}
 					} else if command.Command == "stop" {
 						driverOutChan <- DriverSignal{"engine", 0, 0}
 					}
+
 				case command.Content == "taskDone":
 					Println("taskDone")
+					
 				case command.Content == "signal":
 					driverOutChan <- DriverSignal{command.ButtonType, command.FloorNumber, 0}
 			}

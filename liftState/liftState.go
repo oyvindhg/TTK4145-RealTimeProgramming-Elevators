@@ -67,6 +67,7 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 						(elev)[len(elev) - 1].floorNum = 0
 						(elev)[len(elev) - 1].floorTarget = 0
 						(elev)[len(elev) - 1].state = "Idle"						//SEND NEWID TO ALL ELEVATORS IF MASTER
+						
 					case message.Content == "connectionChange":
 						(elev)[message.ElevNumber].onlineStatus = message.Online
 
@@ -86,6 +87,8 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 							//CHECK IF NOT OWN ELEVATOR && INSIDE DON'T SEND SIGNALCHAN
 						commanderChan <- message
 
+						// Kjør kostfunksjon (hvis noen er idle)
+
 					case message.Content == "deleteOrder":
 						switch{
 						case message.ButtonType == "inside":
@@ -103,6 +106,7 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 
 					case message.Content == "stateUpdate":
 						(elev)[message.ElevNumber].state = message.State
+						//If State == "Idle": Kjør kostfunksjon (hvis flere bestillinger)
 				}
 		}
 	}
