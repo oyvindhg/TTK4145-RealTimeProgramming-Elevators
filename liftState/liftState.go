@@ -32,7 +32,6 @@ func liftState(elev *[]elevator, inside[][] int, outUp[] int, outDown[] int, net
 						commanderChan <- message
 
 					case message.Content == "newID": 
-
 						temp := make([]elevator, len(*elev) + 1, cap(*elev) + 1)
 
 						for i := range *elev {
@@ -45,7 +44,6 @@ func liftState(elev *[]elevator, inside[][] int, outUp[] int, outDown[] int, net
 						(*elev)[len(*elev) - 1].floorNum = 0
 						(*elev)[len(*elev) - 1].floorTarget = 0
 						(*elev)[len(*elev) - 1].state = "Idle"
-
 					case message.Content == "connectionChange":
 						(*elev)[message.ElevNumber].onlineStatus = message.Online
 

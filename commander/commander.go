@@ -28,6 +28,7 @@ func InitCommander(networkSend chan Message, commanderChan chan Message, aliveCh
 		go master(networkSend, commanderChan, aliveChan, signalChan, tickerChan, timerChan, timeOutChan, driverInChan, driverOutChan, requestChan, replyChan)
 	}
 	go commander(commanderChan, aliveChan, signalChan, tickerChan, timerChan, timeOutChan, driverInChan, driverOutChan, requestChan, replyChan)
+	Sleep(2 * Second)
 	timerChan <- TimerInput{150, Millisecond, "alive"}
 }
 
@@ -36,9 +37,10 @@ func commander(commanderChan chan Message, aliveChan chan Message, signalChan ch
 	for {
 		select { 							// ADD FLOORREACHED CASE
 		case <- tickerChan:
-			if notAliveCount == 10 {
+			if notAliveCount == 5 {
 				Println("Master dead!")		// IMPLEMENT PANIC
 			}
+			Println(notAliveCount)
 			notAliveCount++
 			
 		case <- aliveChan:

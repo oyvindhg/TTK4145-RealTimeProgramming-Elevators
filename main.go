@@ -47,12 +47,13 @@ func main(){
 	go InitLiftState(networkReceive, commanderChan, aliveChan, signalChan, requestChan, replyChan, MASTER_INIT_IP, PORT, FLOOR_COUNT, ELEV_COUNT)
 	go InitCommander(networkSend, commanderChan, aliveChan, signalChan, tickerChan, timerChan, timeOutChan, driverInChan, driverOutChan, requestChan, replyChan, MASTER_INIT_IP, PORT, FLOOR_COUNT, ELEV_COUNT)
 
-	//go sendStuff(networkSend)
+	go sendStuff(networkSend)
 
 	// INSERT ELEGANT SOLUTION FOR STOP BUTTON TERMINATE
 
 	// FIX POINTER ELEV IN LIFTSTATE
-
+	Sleep(3 * Second)
+	Println("Initialize done")
 	for {
 		select{
 			case <- driverInChan:
