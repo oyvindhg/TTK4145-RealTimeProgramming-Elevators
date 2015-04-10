@@ -8,9 +8,9 @@ import (
 	."../driver"
 )
 
-func Commander(networkSend chan Message, commanderChan chan Message, aliveChan chan Message, signalChan chan Message, tickerChan chan string, timerChan chan TimerInput, timeOutChan chan string, driverInChan chan DriverSignal, driverOutChan chan DriverSignal) {
+func Commander(networkSend chan Message, commanderChan chan Message, aliveChan chan Message, tickerChan chan string, timerChan chan TimerInput, timeOutChan chan string, driverInChan chan DriverSignal, driverOutChan chan DriverSignal) {
 	notAliveCount := 0
-	Sleep(2 * Second)
+	Sleep(100 * Millisecond)
 	timerChan <- TimerInput{150, Millisecond, "alive"}
 	
 	for {
@@ -19,16 +19,18 @@ func Commander(networkSend chan Message, commanderChan chan Message, aliveChan c
 			if notAliveCount == 5 {
 				Println("Master dead!")		// IMPLEMENT PANIC
 			}
-			Println(notAliveCount)
 			notAliveCount++
 			
 		case <- aliveChan:
 			notAliveCount = 0
+			Println("Alive")
 
 		case command := <- commanderChan:
 			switch {
-				case command.Content == "port":
-
+				case command.Content == "imAlive":
+					networkSend <- command
+				case command.Content == "newID":
+					networkSend <- command
 				case command.Content == "command":
 					if command.Command == "up" {
 						driverOutChan <- DriverSignal{"engine", 0, 1}
@@ -40,13 +42,10 @@ func Commander(networkSend chan Message, commanderChan chan Message, aliveChan c
 					}
 				case command.Content == "taskDone":
 					Println("taskDone")
+				case command.Content == "signal":
+					driverOutChan <- DriverSignal{command.ButtonType, command.FloorNumber, 0}
 			}
 					
-
-		case signal := <- signalChan:
-			Println(signal)
-			driverOutChan <- DriverSignal{signal.ButtonType, signal.FloorNumber, 0}
-
 		case timeOut := <- timeOutChan:
 			Println(timeOut)
 
@@ -57,7 +56,7 @@ func Commander(networkSend chan Message, commanderChan chan Message, aliveChan c
 }
 
 // Content = "imAlive", "newElev", "newOrder", "deleteOrder", "newTarget", rankChange",
-//           "stateUpdate", "connectionChange", "command", "taskDone", "floorReached"
+//           "stateUpdate", "connectionChange", "command", "taskDone", "floorReached", "signal"
 
 // RecipientID, SenderID, Content, Command, ElevNumber,
 // Online, Rank, FloorNumber, ButtonType, State

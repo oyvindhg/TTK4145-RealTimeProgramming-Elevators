@@ -25,9 +25,7 @@ func Timekeeper(tickerChan chan string, timerChan chan TimerInput, timeOutChan c
 }
 
 func doorTimer(input TimerInput, timeOutChan chan string) {
-
 	Sleep(Duration(input.TimeDuration) * input.Scope)
-	
 	timeOutChan <- input.Type
 }
 

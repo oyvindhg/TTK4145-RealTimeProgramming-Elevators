@@ -20,17 +20,16 @@ type elevator struct {
 	state string		//Idle, Open, MovingUp, MovingDown
 }
 
-func LiftState(networkReceive chan Message, commanderChan chan Message, aliveChan chan Message, signalChan chan Message) {
+func LiftState(networkReceive chan Message, commanderChan chan Message, aliveChan chan Message) {
 	elev := make([]elevator, 1)
 	inside 	:= make([][]int, ELEV_COUNT - 1, FLOOR_COUNT - 1)
 	outUp 	:= make([]int, FLOOR_COUNT - 1)
 	outDown	:= make([]int, FLOOR_COUNT - 1)
+
 	addresses, err := net.InterfaceAddrs()
-	elev[0].onlineStatus = true
 	if err != nil {
 		Println("Address error: ", err)
 	}
-
 	for _, address := range addresses {
 		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 			if ipnet.IP.To4() != nil {
@@ -38,6 +37,12 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 			}
 		}
 	}
+
+	if elev[0].computerID == MASTER_INIT_IP+ PORT {
+		go aliveBroadcast(commanderChan, &elev)
+	}
+
+	commanderChan <- Message{MASTER_INIT_IP+ PORT, elev[0].computerID, "newID", "", 0, true, 0, 0, "", ""}
 
 	for{
 		select{
@@ -57,11 +62,11 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 						}
 						elev = temp
 						(elev)[len(elev) - 1].computerID = message.SenderID
-						(elev)[len(elev) - 1].onlineStatus = true
-						(elev)[len(elev) - 1].rank = len(elev)   					//NEED BETTER RANK ALGORITHM
+						(elev)[len(elev) - 1].onlineStatus = message.Online
+						(elev)[len(elev) - 1].rank = len(elev)
 						(elev)[len(elev) - 1].floorNum = 0
 						(elev)[len(elev) - 1].floorTarget = 0
-						(elev)[len(elev) - 1].state = "Idle"
+						(elev)[len(elev) - 1].state = "Idle"						//SEND NEWID TO ALL ELEVATORS IF MASTER
 					case message.Content == "connectionChange":
 						(elev)[message.ElevNumber].onlineStatus = message.Online
 
@@ -79,7 +84,7 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 							outDown[message.FloorNumber] = 1
 						}
 							//CHECK IF NOT OWN ELEVATOR && INSIDE DON'T SEND SIGNALCHAN
-						signalChan <- message
+						commanderChan <- message
 
 					case message.Content == "deleteOrder":
 						switch{
@@ -91,7 +96,7 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 							outDown[message.FloorNumber] = 0
 						}
 							//CHECK IF NOT OWN ELEVATOR && INSIDE DON'T SEND SIGNALCHAN
-						signalChan <- message
+						commanderChan <- message
 
 					case message.Content == "newTarget":
 						(elev)[message.ElevNumber].floorTarget = message.FloorNumber
@@ -103,11 +108,13 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 	}
 }
 
-func aliveBroadcast(networkSend chan Message, tickerChan chan string) {
-	Sleep(1 * Second)		// Give enough time for the other elevators to connect
+func aliveBroadcast(commanderChan chan Message, elev *[]elevator) {
+	Sleep(100 * Millisecond)		// Give enough time for the other elevators to connect
 	for {
-		for i := 1; i < ELEV_COUNT; i++ {
-			networkSend <- Message{MASTER_INIT_IP+ PORT, "", "imAlive", "", 1, true, 1, 1, "", ""}
+		for i := 1; i < ELEV_COUNT + 1; i++ {
+			if i < len(*elev) {
+				commanderChan <- Message{(*elev)[i].computerID, "", "imAlive", "", 0, true, 0, 0, "", ""}
+			}
 		}
 		Sleep(100 * Millisecond)
 	}
@@ -116,7 +123,7 @@ func aliveBroadcast(networkSend chan Message, tickerChan chan string) {
 
 // --- MESSAGE CONTENT ---
 // Content = "imAlive", "newElev", "newOrder", "deleteOrder", "newTarget", rankChange",
-//           "stateUpdate", "connectionChange", "command", "taskDone"
+//           "stateUpdate", "connectionChange", "command", "taskDone", "signal"
 
 
 // --- MESSAGE STRUCT ---
