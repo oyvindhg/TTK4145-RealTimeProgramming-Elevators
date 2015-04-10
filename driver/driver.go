@@ -20,7 +20,7 @@ func DriverInit(driverInChan chan DriverSignal, driverOutChan chan DriverSignal)
 		{BUTTON_UP2, BUTTON_DOWN2, BUTTON_COMMAND2},
 		{BUTTON_UP3, BUTTON_DOWN3, BUTTON_COMMAND3},
 		{BUTTON_UP4, BUTTON_DOWN4, BUTTON_COMMAND4},}
-	
+
 	if !IOInit() {
 		return false
 	}
@@ -58,19 +58,18 @@ func driverReader(driverInChan chan DriverSignal, floorSensors[] int, buttonChan
 	floorSignalLastCheck := []int{0,0,0,0}
 	obstrSignalLastCheck := 0
 	stopSignalLastCheck := 0
-
 	for {
 		for i := 0; i < N_FLOORS; i++ {
 			for j := 0; j < N_BUTTONS; j++ {
 				if IOReadBit(buttonChannelMatrix[i][j]) != buttonSignalLastCheckMatrix[i][j] {
 					if buttonSignalLastCheckMatrix[i][j] == 0 {
 						switch {
-						case i == 2:
-							driverInChan <- DriverSignal{"inside", j, 1}
-						case i == 0:
-							driverInChan <- DriverSignal{"outsideUp", j, 1}
-						case i == 1:
-							driverInChan <- DriverSignal{"outsideDown", j, 1}
+						case j == 2:
+							driverInChan <- DriverSignal{"inside", i, 1}
+						case j == 0:
+							driverInChan <- DriverSignal{"outsideUp", i, 1}
+						case j == 1:
+							driverInChan <- DriverSignal{"outsideDown", i, 1}
 						}
 						buttonSignalLastCheckMatrix[i][j] = 1
 					} else if buttonSignalLastCheckMatrix[i][j] == 1 {

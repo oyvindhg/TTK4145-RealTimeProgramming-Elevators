@@ -67,8 +67,8 @@ func commander(commanderChan chan Message, aliveChan chan Message, signalChan ch
 		case timeOut := <- timeOutChan:
 			Println(timeOut)
 
-		case driverIn := <- driverInChan:
-			Println(driverIn)
+		case <- driverInChan:
+			//Println(driverIn)
 		}
 	}
 }
@@ -79,7 +79,7 @@ func master(networkSend chan Message, commanderChan chan Message, aliveChan chan
 }
 
 func aliveBroadcast(networkSend chan Message, tickerChan chan string, requestChan chan Request, replyChan chan Reply) {
-	Sleep(100 * Millisecond)		// Give enough time for the other elevators to connect
+	Sleep(1 * Second)		// Give enough time for the other elevators to connect
 	requestChan <- Request{"elevCount", 0}
 	reply := <- replyChan
 	elevCount := reply.Number

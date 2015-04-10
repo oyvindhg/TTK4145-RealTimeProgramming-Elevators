@@ -20,7 +20,7 @@ import(
 
 const ELEV_COUNT = 3
 const FLOOR_COUNT = 4
-const MASTER_INIT_IP = "129.241.187.148"
+const MASTER_INIT_IP = "129.241.187.144"
 const PORT = ":20015"
 
 func main(){
@@ -47,7 +47,7 @@ func main(){
 	go InitLiftState(networkReceive, commanderChan, aliveChan, signalChan, requestChan, replyChan, MASTER_INIT_IP, PORT, FLOOR_COUNT, ELEV_COUNT)
 	go InitCommander(networkSend, commanderChan, aliveChan, signalChan, tickerChan, timerChan, timeOutChan, driverInChan, driverOutChan, requestChan, replyChan, MASTER_INIT_IP, PORT, FLOOR_COUNT, ELEV_COUNT)
 
-	go sendStuff(networkSend)
+	//go sendStuff(networkSend)
 
 	// INSERT ELEGANT SOLUTION FOR STOP BUTTON TERMINATE
 
@@ -55,15 +55,15 @@ func main(){
 
 	for {
 		select{
-			case driver := <- driverInChan:
-				Println(driver.SignalType, driver.FloorNumber)
+			case <- driverInChan:
+				//Println(driver.SignalType, driver.FloorNumber + 1)
 		}
 	}
 }
 
 func sendStuff(networkSend chan Message){
 	
-	initElev1 := Message{MASTER_INIT_IP+ PORT, MASTER_INIT_IP+ PORT, "newID", "", 0, false, 0, 0, "", ""}
+	initElev1 := Message{MASTER_INIT_IP+ PORT, "129.241.187.144"+ PORT, "newID", "", 0, false, 0, 0, "", ""}
 	//message := Message{PORT, "", "command", "up", 1, false, 1, 4, "", ""}
 	networkSend <- initElev1
 }
