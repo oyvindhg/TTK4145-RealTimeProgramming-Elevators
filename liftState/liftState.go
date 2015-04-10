@@ -45,7 +45,6 @@ func liftState(elev *[]elevator, inside[][] int, outUp[] int, outDown[] int, net
 						(*elev)[len(*elev) - 1].floorNum = 0
 						(*elev)[len(*elev) - 1].floorTarget = 0
 						(*elev)[len(*elev) - 1].state = "Idle"
-Println(len(*elev))
 
 					case message.Content == "connectionChange":
 						(*elev)[message.ElevNumber].onlineStatus = message.Online
@@ -95,7 +94,6 @@ func InitLiftState(networkReceive chan Message, commanderChan chan Message, aliv
 	outDown	:= make([]int, FLOOR_COUNT - 1)
 	addresses, err := net.InterfaceAddrs()
 	elev[0].onlineStatus = true
-Println(len(elev))
 	if err != nil {
 		Println("Address error: ", err)
 	}

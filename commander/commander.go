@@ -79,18 +79,15 @@ func master(networkSend chan Message, commanderChan chan Message, aliveChan chan
 }
 
 func aliveBroadcast(networkSend chan Message, tickerChan chan string, requestChan chan Request, replyChan chan Reply) {
-	Sleep(1 * Second)		// Give enough time for the other elevators to connect
+	Sleep(100 * Millisecond)		// Give enough time for the other elevators to connect
 	requestChan <- Request{"elevCount", 0}
 	reply := <- replyChan
 	elevCount := reply.Number
 	computerIDs := make([]string, elevCount + 1)
-	Println("elevCount =", elevCount)
 	for i := 1; i < elevCount; i++ {
-		Println("ComputerID %s", i, " = ", reply.Answer)
 		requestChan <- Request{"computerID", i}
 		reply = <- replyChan
 		computerIDs[i] = reply.Answer
-
 	}
 	for {
 		for j := 1; j < elevCount; j++ {
