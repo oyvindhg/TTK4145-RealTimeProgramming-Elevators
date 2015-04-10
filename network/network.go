@@ -6,35 +6,25 @@ import (
 	"net"
 )
 
-// Content = "imAlive", "newElev", "newOrder", "deleteOrder", "rankChange",
-//           "stateUpdate", "connectionChange", "command", "taskDone"
-
-// RecipientID, SenderID, Content, Command, ElevNumber,
-// Online, Rank, FloorNumber, ButtonType, State
+const PORT = ":20015"
 
 type Message struct {
 	RecipientID string
 	SenderID string	
-
 	Content string
 	Command string
 	ElevNumber int
-
 	Online bool
 	Rank int
-
 	FloorNumber int
 	ButtonType string
-
 	State string
 }
 
-func InitNetwork(portNum string, networkReceive chan Message, networkSend chan Message) {
-
+func Network(networkReceive chan Message, networkSend chan Message) {
 	receivedChannel := make(chan Message)
+	go listen(receivedChannel)
 
-	go listen(portNum, receivedChannel)
-	
 	for{	
 		select{
 			case	receivedMessage := <- receivedChannel:
@@ -46,7 +36,7 @@ func InitNetwork(portNum string, networkReceive chan Message, networkSend chan M
 	}
 }
 
-func listen(PORT string, receivedChannel chan Message) {
+func listen(receivedChannel chan Message) {
 
 	listener, error := net.Listen("tcp", PORT)
 	if error != nil {

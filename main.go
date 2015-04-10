@@ -10,19 +10,6 @@ import(
 	."./commander"
 )
 
-// Content = "imAlive", "newElev", "newOrder", "deleteOrder", "newTarget", rankChange",
-//           "stateUpdate", "connectionChange", "command", "taskDone", "floorReached"
-
-// RecipientID, SenderID, Content, Command, ElevNumber,
-// Online, Rank, FloorNumber, ButtonType, State
-
-// computerID, onlineStatus, rank, floorNum, floorTarget, state, inElev[]
-
-const ELEV_COUNT = 3
-const FLOOR_COUNT = 4
-const MASTER_INIT_IP = "129.241.187.144"
-const PORT = ":20015"
-
 func main(){
 
 	networkReceive := make(chan Message)
@@ -35,17 +22,15 @@ func main(){
 	timeOutChan := make(chan string)
 	driverInChan := make(chan DriverSignal)
 	driverOutChan := make(chan DriverSignal)
-	requestChan := make(chan Request)
-	replyChan := make(chan Reply)
 
 	if !DriverInit(driverInChan, driverOutChan){
 		Println("Driver init failed!")
 		return
 	}
-	go InitTimer(tickerChan, timerChan, timeOutChan)
-	go InitNetwork(PORT, networkReceive, networkSend)
-	go InitLiftState(networkReceive, commanderChan, aliveChan, signalChan, requestChan, replyChan, MASTER_INIT_IP, PORT, FLOOR_COUNT, ELEV_COUNT)
-	go InitCommander(networkSend, commanderChan, aliveChan, signalChan, tickerChan, timerChan, timeOutChan, driverInChan, driverOutChan, requestChan, replyChan, MASTER_INIT_IP, PORT, FLOOR_COUNT, ELEV_COUNT)
+	go Timekeeper(tickerChan, timerChan, timeOutChan)
+	go Network(networkReceive, networkSend)
+	go LiftState(networkReceive, commanderChan, aliveChan, signalChan)
+	go Commander(networkSend, commanderChan, aliveChan, signalChan, tickerChan, timerChan, timeOutChan, driverInChan, driverOutChan)
 
 	go sendStuff(networkSend)
 

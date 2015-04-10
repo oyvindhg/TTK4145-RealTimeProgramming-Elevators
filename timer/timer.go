@@ -10,7 +10,7 @@ type TimerInput struct {
 	Type string
 }
 
-func InitTimer(tickerChan chan string, timerChan chan TimerInput, timeOutChan chan string) {
+func Timekeeper(tickerChan chan string, timerChan chan TimerInput, timeOutChan chan string) {
 	for {
 		select {
 		case input := <- timerChan:
@@ -37,5 +37,4 @@ func aliveTicker(input TimerInput, tickerChan chan string) {
 		tickerChan <- input.Type
 		_ = now
 	}
-	
 }
