@@ -20,8 +20,8 @@ import(
 
 const ELEV_COUNT = 3
 const FLOOR_COUNT = 4
-const MASTER_INIT_IP = "129.241.187.146"
-const PORT = ":20006"
+const MASTER_INIT_IP = "129.241.187.150"
+const PORT = ":20003"
 
 func main(){
 
