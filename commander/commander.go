@@ -3,18 +3,19 @@ package commander
 import (
 	."fmt"
 	."time"
-	."../timer"
 	."../network"
-	."../driver"
 )
 
-func Commander(networkSend chan Message, commanderChan chan Message, aliveChan chan Message, tickerChan chan string, timerChan chan TimerInput, timeOutChan chan string, driverInChan chan DriverSignal, driverOutChan chan DriverSignal) {
-	notAliveCount := 0
-	masterID := ""+ PORT
-	elevRank := 0
-	Sleep(100 * Millisecond)
-	timerChan <- TimerInput{150, Millisecond, "alive", 0, ""}
+func Commander(networkSend chan Message, commanderChan chan Message, aliveChan chan Message, tickerChan chan string, timerChan chan TimerInput, timeOutChan chan string, driverInChan chan Message, driverOutChan chan Message) {
 	
+	notAliveCount := 0
+	message := Message{}
+	Sleep(100 * Millisecond)
+	message.Type = "alive"
+	message.Content = Millisecond
+	message.Value = 150
+	timerChan <- message
+
 	for {
 		select {
 		case <- tickerChan:
@@ -27,55 +28,50 @@ func Commander(networkSend chan Message, commanderChan chan Message, aliveChan c
 			notAliveCount = 0
 			Println("Alive")
 
-		case command := <- commanderChan:
+		case commanderMessage := <- commanderChan:
 			switch {
-			case command.Content == "imAlive":
-				networkSend <- command
+			case commanderMessage.Type == "imAlive":
+				networkSend <- commanderMessage
 
-			case command.Content == "newID":
-				networkSend <- command
+			case commanderMessage.Type == "newID":
+				networkSend <- commanderMessage
 
-			case command.Content == "command":
-				if command.Command == "up" {
-					driverOutChan <- DriverSignal{"engine", 0, 1}
-				} else if command.Command == "down" {
-					driverOutChan <- DriverSignal{"engine", 0, -1}
-				} else if command.Command == "stop" {
-					driverOutChan <- DriverSignal{"engine", 0, 0}
-					timerChan <- TimerInput{3, Second, "door", command.ElevNumber, command.RecipientID}
+			case commanderMessage.Type == "signal":
+				driverOutChan <- commanderMessage
+
+			case commanderMessage.Type == "command":	
+				if commanderMessage.Content == "up" {
+					message.Value = 1
+				} else if commanderMessage.Content == "down" {
+					message.Value = -1
+				} else if commanderMessage.Content == "stop" {
+					message.Type = "door"
+					message.Value = 3
+					timerChan <- <- message
+					message.Value = 0
 				}
-				
-			case command.Content == "signal":
-				driverOutChan <- DriverSignal{command.ButtonType, command.FloorNumber, command.Rank}
+				message.Type = "engine"
+				driverOutChan <- message
 			}
 					
 		case timeOut := <- timeOutChan:
-			networkSend <- Message{timeOut.RecipientID, "", "stateUpdate", timeOut.ElevNumber, true, 0, 0, "", "Idle"}
-			driverOutChan <- DriverSignal{"door", 0, 1}
+			message.Type = timeOut
+			driverOutChan <- message
+
+			message.Type = "stateUpdate"
+			message.Content = "Idle"
+			networkSend <- message
 
 		case driverInput := <- driverInChan:  //floorReached, inside, outsideUp, outsideDown, stop, obstr
 			switch {
-			case driverInput.SignalType == "inside" || driverInput.SignalType == "outsideUp" || driverInput.SignalType == "outsideDown":
-				networkSend <- Message{RECIPIENTID, "", "newOrder", "", 0, true, 0, driverInput.FloorNumber, driverInput.SignalType, ""}
-			case driverInput.SignalType == "floorReached" || driverInput.SignalType == "stop" || driverInput.SignalType == "obstr":
-				networkSend <- Message{RECIPIENTID, "", "stateUpdate", "", 0, true, 0, driverInput.FloorNumber, driverInput.SignalType, ""}
+			case driverInput.Type == "inside" || driverInput.Type == "outsideUp" || driverInput.Type == "outsideDown":
+				message.Type = "newOrder"
+			case driverInput.Type == "floorReached" || driverInput.Type == "stop" || driverInput.Type == "obstr":
+				message.Type = "stateUpdate"
 			}
+			message.Content = driverInput.Type
+			message.Floor = driverInput.Floor
+			networkSend <- message
 		}
 	}
 }
-
-// Content = "imAlive", "newElev", "newOrder", "deleteOrder", "newTarget", rankChange",
-//           "stateUpdate", "connectionChange", "command", "floorReached", "signal"
-
-// Type, To, From, Content, Floor
-
-// Content, Command, Rank, FloorNumber, Type
-
-// computerID, onlineStatus, rank, floorNum, floorTarget, state, inElev[]
-
-/*
-type DriverSignal struct{
-	SignalType string  // engine, floorReached, inside, outsideUp, outsideDown, stop, obstr
-	FloorNumber int
-	Value int
-}*/

@@ -2,17 +2,10 @@ package timer
 
 import (
 	."time"
+	."../network"
 )
 
-type TimerInput struct {
-	TimeDuration int
-	Scope Duration
-	Type string
-	ElevNumber int
-	RecipientID string
-}
-
-func Timekeeper(tickerChan chan string, timerChan chan TimerInput, timeOutChan chan string) {
+func Timekeeper(tickerChan chan string, timerChan chan Message, timeOutChan chan string) {
 	for {
 		select {
 		case input := <- timerChan:
@@ -26,13 +19,13 @@ func Timekeeper(tickerChan chan string, timerChan chan TimerInput, timeOutChan c
 	}
 }
 
-func doorTimer(input TimerInput, timeOutChan chan string) {
-	Sleep(Duration(input.TimeDuration) * input.Scope)
+func doorTimer(input Message, timeOutChan chan string) {
+	Sleep(Duration(input.Value) * input.Content)
 	timeOutChan <- input.Type
 }
 
-func aliveTicker(input TimerInput, tickerChan chan string) {
-	tick := Tick(Duration(input.TimeDuration) * input.Scope)
+func aliveTicker(input Message, tickerChan chan string) {
+	tick := Tick(Duration(input.Value) * input.Content)
 	for now := range tick {
 		tickerChan <- input.Type
 		_ = now
