@@ -12,21 +12,25 @@ import(
 
 // TO DO
 
-// Kostfunksjon i LiftState
+// MÅ ORDNE ENKEL MÅTE FOR COMMANDER Å SENDE TIL NÅVÆRENDE MASTER
+
+// MÅ ORDNE ENKEL MÅTE FOR COMMANDER Å VITE HVILKEN HEIS SOM FÅR DRIVERINPUT
+
+// Kostfunksjon i LiftState  (FloorReached i Commander blir handla av en stateUpdate i Liftstate)
 
 // Death panic
 
-// Master sende heisinfo når ny heis kobler seg på til de andre heisene + velkomstpakke til ny heis
-
-// Floor reached case i Commander
+// Master sender heisinfo når ny heis kobler seg på til de andre heisene + velkomstpakke til ny heis
 
 // Driverinputs til Commander
 
-// Driveroutputs til Commander
+// Driveroutputs til Commander	 Fixed, liftState må ordne når driverOutputs skal sendes til Commander
 
-// Dørtimer i Commander
+// Dørtimer i Commander     ---  La til elevSetDoorLamp(1) i driver.go i en if IOReadBit(floorSensors[i]) != 0
+//							---  La til ElevNumber i TimerInput structen for å kunne gi beskjed om hvilken heis som åpner/lukker døra og får Open/Idle state
 
-// Task done i Commander
+// Task done i commander 	---  Må legge til algoritme i liftState for å sende til alle heisene, kan ikke gjøre dette i network pga f eks aliveBroadcast (ikke til alle)
+//							---  La til taskDone som eget case i liftState, liftState skal jo slette ordre også
 
 func main(){
 

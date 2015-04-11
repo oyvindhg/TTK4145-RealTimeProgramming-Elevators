@@ -7,7 +7,7 @@ const N_BUTTONS = 3
 const N_FLOORS = 4
 
 type DriverSignal struct{
-	SignalType string  // engine, floorReached, inside, outsideUp, outsideDown, stop, obstr
+	SignalType string  // engine, floorReached, inside, outsideUp, outsideDown, stop, obstr, door
 	FloorNumber int
 	Value int
 }
@@ -119,12 +119,21 @@ func driverWriter(driverOutChan chan DriverSignal) {
 			switch {
 				case command.SignalType == "engine":
 					elevSetEngineSpeed(command.Value)		// 0 = stop, 1 = up, -1 = down
+					if command.Value == 0 {
+						for i := 0; i < N_FLOORS; i++ {
+							if IOReadBit(floorSensors[i]) != 0 {
+								elevSetDoorOpenLamp(1)
+							}
+						}
+					}
 				case command.SignalType == "floorReached":
 					elevSetFloorIndicator(command.FloorNumber)
 				case command.SignalType == "inside" || command.SignalType == "outsideUp" || command.SignalType == "outsideDown":
 					elevSetButtonLamp(command.SignalType, command.FloorNumber, command.Value)
 				case command.SignalType == "stop":
 					elevSetStopLamp(command.Value)
+				case command.SignalType == "door":
+					elevSetDoorOpenLamp(command.Value)
 			}
 		}
 	}

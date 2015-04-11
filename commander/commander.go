@@ -10,11 +10,13 @@ import (
 
 func Commander(networkSend chan Message, commanderChan chan Message, aliveChan chan Message, tickerChan chan string, timerChan chan TimerInput, timeOutChan chan string, driverInChan chan DriverSignal, driverOutChan chan DriverSignal) {
 	notAliveCount := 0
+	masterID := ""+ PORT
+	elevRank := 0
 	Sleep(100 * Millisecond)
-	timerChan <- TimerInput{150, Millisecond, "alive"}
+	timerChan <- TimerInput{150, Millisecond, "alive", 0, ""}
 	
 	for {
-		select { 							// ADD FLOORREACHED CASE
+		select {
 		case <- tickerChan:
 			if notAliveCount == 5 {
 				Println("Master dead!")		// IMPLEMENT PANIC
@@ -27,33 +29,40 @@ func Commander(networkSend chan Message, commanderChan chan Message, aliveChan c
 
 		case command := <- commanderChan:
 			switch {
-				case command.Content == "imAlive":
-					networkSend <- command
+			case command.Content == "imAlive":
+				networkSend <- command
 
-				case command.Content == "newID":
-					networkSend <- command
+			case command.Content == "newID":
+				networkSend <- command
 
-				case command.Content == "command":
-					if command.Command == "up" {
-						driverOutChan <- DriverSignal{"engine", 0, 1}
-					} else if command.Command == "down" {
-						driverOutChan <- DriverSignal{"engine", 0, -1}
-					} else if command.Command == "stop" {
-						driverOutChan <- DriverSignal{"engine", 0, 0}
-					}
+			case command.Content == "command":
+				if command.Command == "up" {
+					driverOutChan <- DriverSignal{"engine", 0, 1}
+				} else if command.Command == "down" {
+					driverOutChan <- DriverSignal{"engine", 0, -1}
+				} else if command.Command == "stop" {
+					driverOutChan <- DriverSignal{"engine", 0, 0}
+					timerChan <- TimerInput{3, Second, "door", command.ElevNumber, command.RecipientID}
+				}
 
-				case command.Content == "taskDone":
-					Println("taskDone")
-					
-				case command.Content == "signal":
-					driverOutChan <- DriverSignal{command.ButtonType, command.FloorNumber, 0}
+			case command.Content == "taskDone":
+				Println("taskDone")
+				
+			case command.Content == "signal":
+				driverOutChan <- DriverSignal{command.ButtonType, command.FloorNumber, command.Rank}
 			}
 					
 		case timeOut := <- timeOutChan:
-			Println(timeOut)
+			networkSend <- Message{timeOut.RecipientID, "", "stateUpdate", timeOut.ElevNumber, true, 0, 0, "", "Idle"}
+			driverOutChan <- DriverSignal{"door", 0, 1}
 
-		case <- driverInChan:
-			//Println(driverIn)
+		case driverInput := <- driverInChan:  //floorReached, inside, outsideUp, outsideDown, stop, obstr
+			switch {
+			case driverInput.SignalType == "inside" || driverInput.SignalType == "outsideUp" || driverInput.SignalType == "outsideDown":
+				networkSend <- Message{RECIPIENTID, "", "newOrder", "", 0, true, 0, driverInput.FloorNumber, driverInput.SignalType, ""}
+			case driverInput.SignalType == "floorReached" || driverInput.SignalType == "stop" || driverInput.SignalType == "obstr":
+				networkSend <- Message{RECIPIENTID, "", "stateUpdate", "", 0, true, 0, driverInput.FloorNumber, driverInput.SignalType, ""}
+			}
 		}
 	}
 }

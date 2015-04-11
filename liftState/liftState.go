@@ -48,65 +48,69 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 		select{
 			case message := <- networkReceive:
 				switch{
-					case message.Content == "imAlive":
-						aliveChan <- message
+				case message.Content == "imAlive":
+					aliveChan <- message
 
-					case message.Content == "command" || message.Content == "taskDone":
-						commanderChan <- message
+				case message.Content == "command":
+					commanderChan <- message
 
-					case message.Content == "newID": 
-						temp := make([]elevator, len(elev) + 1, cap(elev) + 1)
+				case message.Content == "taskDone":
+					// taskDone blir kun sendt til Master, og Master må be alle heisene deleteOrder
 
-						for i := range elev {
-							temp[i] = (elev)[i]
-						}
-						elev = temp
-						(elev)[len(elev) - 1].computerID = message.SenderID
-						(elev)[len(elev) - 1].onlineStatus = message.Online
-						(elev)[len(elev) - 1].rank = len(elev)
-						(elev)[len(elev) - 1].floorNum = 0
-						(elev)[len(elev) - 1].floorTarget = 0
-						(elev)[len(elev) - 1].state = "Idle"						//SEND NEWID TO ALL ELEVATORS IF MASTER
+				case message.Content == "newID": 
+					temp := make([]elevator, len(elev) + 1, cap(elev) + 1)
+
+					for i := range elev {
+						temp[i] = (elev)[i]
+					}
+					elev = temp
+					(elev)[len(elev) - 1].computerID = message.SenderID
+					(elev)[len(elev) - 1].onlineStatus = message.Online
+					(elev)[len(elev) - 1].rank = len(elev)
+					(elev)[len(elev) - 1].floorNum = 0
+					(elev)[len(elev) - 1].floorTarget = 0
+					(elev)[len(elev) - 1].state = "Idle"						//SEND NEWID TO ALL ELEVATORS IF MASTER
+					
+				case message.Content == "connectionChange":
+					(elev)[message.ElevNumber].onlineStatus = message.Online
+
+				case message.Content == "rankChange":
+					(elev)[message.ElevNumber].rank = message.Rank
+
+				case message.Content == "newOrder":
+					switch{
+					case message.ButtonType == "inside":
+						inside[message.ElevNumber][message.FloorNumber - 1] = 1
 						
-					case message.Content == "connectionChange":
-						(elev)[message.ElevNumber].onlineStatus = message.Online
+					case message.ButtonType == "outsideUp":
+						outUp[message.FloorNumber] = 1
+					case message.ButtonType == "outsideDown":
+						outDown[message.FloorNumber] = 1
+					}
+						//CHECK IF NOT OWN ELEVATOR && INSIDE DON'T SEND SIGNALCHAN
+					commanderChan <- message
 
-					case message.Content == "rankChange":
-						(elev)[message.ElevNumber].rank = message.Rank
+					// Kjør kostfunksjon (hvis noen er idle)
 
-					case message.Content == "newOrder":
-						switch{
-						case message.ButtonType == "inside":
-							inside[message.ElevNumber][message.FloorNumber - 1] = 1
-							
-						case message.ButtonType == "outsideUp":
-							outUp[message.FloorNumber] = 1
-						case message.ButtonType == "outsideDown":
-							outDown[message.FloorNumber] = 1
-						}
-							//CHECK IF NOT OWN ELEVATOR && INSIDE DON'T SEND SIGNALCHAN
-						commanderChan <- message
+				case message.Content == "deleteOrder":
+					switch{
+					case message.ButtonType == "inside":
+						inside[message.ElevNumber][message.FloorNumber - 1] = 0
+					case message.ButtonType == "outsideUp":
+						outUp[message.FloorNumber] = 0
+					case message.ButtonType == "outsideDown":
+						outDown[message.FloorNumber] = 0
+					}
+						//CHECK IF NOT OWN ELEVATOR && INSIDE DON'T SEND SIGNALCHAN
+					commanderChan <- message
 
-						// Kjør kostfunksjon (hvis noen er idle)
+				case message.Content == "newTarget":
+					(elev)[message.ElevNumber].floorTarget = message.FloorNumber
 
-					case message.Content == "deleteOrder":
-						switch{
-						case message.ButtonType == "inside":
-							inside[message.ElevNumber][message.FloorNumber - 1] = 0
-						case message.ButtonType == "outsideUp":
-							outUp[message.FloorNumber] = 0
-						case message.ButtonType == "outsideDown":
-							outDown[message.FloorNumber] = 0
-						}
-							//CHECK IF NOT OWN ELEVATOR && INSIDE DON'T SEND SIGNALCHAN
-						commanderChan <- message
-
-					case message.Content == "newTarget":
-						(elev)[message.ElevNumber].floorTarget = message.FloorNumber
-
-					case message.Content == "stateUpdate":
-						(elev)[message.ElevNumber].state = message.State
-						//If State == "Idle": Kjør kostfunksjon (hvis flere bestillinger)
+				case message.Content == "stateUpdate":
+					(elev)[message.ElevNumber].state = message.State
+					//If State == "Idle": Kjør kostfunksjon (hvis flere bestillinger)
+					//Legg til kode som gjør at Masters IP blir sendt om RecipientID pga timeOut for døra
 				}
 		}
 	}

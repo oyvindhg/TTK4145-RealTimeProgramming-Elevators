@@ -8,6 +8,8 @@ type TimerInput struct {
 	TimeDuration int
 	Scope Duration
 	Type string
+	ElevNumber int
+	RecipientID string
 }
 
 func Timekeeper(tickerChan chan string, timerChan chan TimerInput, timeOutChan chan string) {
