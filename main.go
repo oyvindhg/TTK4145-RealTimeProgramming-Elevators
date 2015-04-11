@@ -7,6 +7,7 @@ import(
 	."./network"
 	."./liftState"
 	."./commander"
+	."./fileManager"
 )
 
 func main(){
@@ -30,7 +31,7 @@ func main(){
 	go Network(networkReceive, networkSend)
 	go LiftState(networkReceive, commanderChan, aliveChan)
 	go Commander(networkSend, commanderChan, aliveChan, tickerChan, timerChan, timeOutChan, driverInChan, driverOutChan)
-
+	go ReadIP()
 	select{
 		case <- mainWaitChan:
 	}
