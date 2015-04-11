@@ -22,6 +22,8 @@ import(
 
 // Master sender heisinfo når ny heis kobler seg på til de andre heisene + velkomstpakke til ny heis
 
+// FIX APPEND TO SLICE (ELEV)
+
 // Driverinputs til Commander
 
 // Driveroutputs til Commander	 Fixed, liftState må ordne når driverOutputs skal sendes til Commander

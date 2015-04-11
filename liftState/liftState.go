@@ -54,9 +54,6 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 				case message.Content == "command":
 					commanderChan <- message
 
-				case message.Content == "taskDone":
-					// taskDone blir kun sendt til Master, og Master må be alle heisene deleteOrder
-
 				case message.Content == "newID": 
 					temp := make([]elevator, len(elev) + 1, cap(elev) + 1)
 
@@ -131,7 +128,7 @@ func aliveBroadcast(commanderChan chan Message, elev *[]elevator) {
 
 // --- MESSAGE CONTENT ---
 // Content = "imAlive", "newElev", "newOrder", "deleteOrder", "newTarget", rankChange",
-//           "stateUpdate", "connectionChange", "command", "taskDone", "signal"
+//           "stateUpdate", "connectionChange", "command", "signal"
 
 
 // --- MESSAGE STRUCT ---
@@ -141,3 +138,23 @@ func aliveBroadcast(commanderChan chan Message, elev *[]elevator) {
 
 // --- ELEVATOR STRUCT ---
 // computerID, onlineStatus, rank, floorNum, floorTarget, state, inElev[]
+
+
+network:
+
+FAILED TCP TIL RANK 2
+HEIS RANK 2 = OFFLINE
+HEIS RANK 3 = RANK 2
+
+MESSAGE TO LIFTSTATE:
+
+REMOVE RANK 2
+RANK 3 = RANK 2
+
+liftState:
+
+elev[2] = elev[3]
+Append-Remove(elev[3])
+
+elev = Append(elev, element)
+

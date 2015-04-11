@@ -44,9 +44,6 @@ func Commander(networkSend chan Message, commanderChan chan Message, aliveChan c
 					driverOutChan <- DriverSignal{"engine", 0, 0}
 					timerChan <- TimerInput{3, Second, "door", command.ElevNumber, command.RecipientID}
 				}
-
-			case command.Content == "taskDone":
-				Println("taskDone")
 				
 			case command.Content == "signal":
 				driverOutChan <- DriverSignal{command.ButtonType, command.FloorNumber, command.Rank}
@@ -68,10 +65,11 @@ func Commander(networkSend chan Message, commanderChan chan Message, aliveChan c
 }
 
 // Content = "imAlive", "newElev", "newOrder", "deleteOrder", "newTarget", rankChange",
-//           "stateUpdate", "connectionChange", "command", "taskDone", "floorReached", "signal"
+//           "stateUpdate", "connectionChange", "command", "floorReached", "signal"
 
-// RecipientID, SenderID, Content, Command, ElevNumber,
-// Online, Rank, FloorNumber, ButtonType, State
+// Type, To, From, Content, Floor
+
+// Content, Command, Rank, FloorNumber, Type
 
 // computerID, onlineStatus, rank, floorNum, floorTarget, state, inElev[]
 
