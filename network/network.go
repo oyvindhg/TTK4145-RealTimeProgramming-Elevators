@@ -2,14 +2,15 @@ package network
 
 import (
 	."encoding/json"
+	."time"
 	."fmt"
 	"net"
 )
 
 const ELEV_COUNT = 3
 const FLOOR_COUNT = 4
-const MASTER_INIT_IP = "129.241.187.148"
-const PORT = ":20015"
+const MASTER_INIT_IP = "129.241.187.140"
+const PORT = ":20001"
 
 type Message struct {
 	Type string
@@ -21,6 +22,8 @@ type Message struct {
 }
 
 func Network(networkReceive chan Message, networkSend chan Message) {
+	recievedChannel := make(chan Message)
+	go listen(recievedChannel)
 	message := Message{}
 	destination := 0
 	readableFile := false
@@ -39,11 +42,8 @@ func Network(networkReceive chan Message, networkSend chan Message) {
 
 	if IP[0] == MASTER_INIT_IP {
 		message.Type = "broadcast"
-		networkReceive <- message
+		go startBroadcast(message, IP)
 	}
-
-	recievedChannel := make(chan Message)
-	go listen(recievedChannel)
 
 	if /* FILE PRESENT */ destination == -2 {
 		readableFile = true
@@ -62,6 +62,8 @@ func Network(networkReceive chan Message, networkSend chan Message) {
 
 			case message = <- networkSend:
 				switch{
+				case message.Type == "imAlive":
+					destination = -1
 				case message.Type == "newID":
 					if !readableFile {
 						destination = -1
@@ -98,13 +100,14 @@ func listen(recievedChannel chan Message) {
 }
 
 func send(message Message, destination int, IP[] string) {
+	recipient := ""
 	switch{
 	case destination == -1:
-		connection, error := net.Dial("tcp", MASTER_INIT_IP+ PORT)
+		recipient = MASTER_INIT_IP
 	case destination > 0:
-		connection, error := net.Dial("tcp", IP[destination]+ PORT)
+		recipient = IP[destination]
 	}
-
+	connection, error := net.Dial("tcp", recipient+ PORT)
 	if error != nil {
 		Println(error)
 	}
@@ -119,7 +122,7 @@ func send(message Message, destination int, IP[] string) {
 func receive(connection net.Conn, recievedChannel chan Message) {
 	defer connection.Close()
 	buffer := make([]byte, 1024)
-	message := Message{"nil", "nil", "nil", "nil", 0, false, 0, 0, "nil", "nil"}
+	message := Message{}
 	length, error := connection.Read(buffer)
 	if error != nil {
 		Println(error)
@@ -130,4 +133,9 @@ func receive(connection net.Conn, recievedChannel chan Message) {
 		Println("Receive error: ", err)
 	}
 	recievedChannel <- message
+}
+
+func startBroadcast(message Message, IP[] string) {
+	Sleep(400 * Millisecond)
+	go send(message, -1, IP)
 }

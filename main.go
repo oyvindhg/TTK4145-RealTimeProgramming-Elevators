@@ -12,15 +12,15 @@ import(
 func main(){
 
 	mainWaitChan := make(chan int)
-	networkReceive := make(chan Message)
 	networkSend := make(chan Message)
+	networkReceive := make(chan Message)
 	commanderChan := make(chan Message)
 	aliveChan := make(chan Message)
+	timerChan := make(chan Message)
 	tickerChan := make(chan string)
-	timerChan := make(chan TimerInput)
 	timeOutChan := make(chan string)
-	driverInChan := make(chan DriverSignal)
-	driverOutChan := make(chan DriverSignal)
+	driverInChan := make(chan Message)
+	driverOutChan := make(chan Message)
 
 	if !DriverInit(driverInChan, driverOutChan){
 		Println("Driver init failed!")
@@ -47,6 +47,8 @@ Type: "imAlive", "newElev", "newOrder", "deleteOrder", "newTarget", rankChange",
 
 
 -----------------------------           TO DO           -------------------------------------
+
+FIX DEADLOCK IN NETWORK BROADCAST
 
 Death panic
 

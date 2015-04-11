@@ -1,6 +1,12 @@
 package driver
 
-import ."time"
+import (
+	."time"
+	."../network"
+)
+
+const N_FLOORS = 4
+const N_BUTTONS = 3
 
 func DriverInit(driverInChan chan Message, driverOutChan chan Message) (bool) {
 
@@ -39,7 +45,7 @@ func DriverInit(driverInChan chan Message, driverOutChan chan Message) (bool) {
 		elevSetEngineSpeed(-1)
 	}
 	go driverReader(driverInChan, floorSensors, buttonChannelMatrix)
-	go driverWriter(driverOutChan)
+	go driverWriter(driverOutChan, floorSensors)
 
 	return true
 }
@@ -111,7 +117,7 @@ func driverReader(driverInChan chan Message, floorSensors[] int, buttonChannelMa
 	}
 }
 
-func driverWriter(driverOutChan chan Message) {
+func driverWriter(driverOutChan chan Message, floorSensors[] int) {
 	for {
 		select {
 		case message := <- driverOutChan:
