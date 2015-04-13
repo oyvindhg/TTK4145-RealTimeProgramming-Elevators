@@ -44,25 +44,19 @@ func main(){
 
 FIX DEADLOCK IN NETWORK BROADCAST
 
-DEATH PANIC
-
-Network send tcp connection fail and elevOffline case
-
 Implement read/write in Liftstate
 
 Implement read/write in Network
 
-AddElev case i Network? Alle sender til Master og så sender den videre kopi til alle?
-
 Kostfunksjon i LiftState  (FloorReached i Commander blir handla av en stateUpdate i Liftstate)
 
-Velkomstpakke til ny heis i Liftstate, inkludert IPliste og ordre
+
 
 NB! Vi må starte heisene i rekkefølge for at Master faktisk skal bli Master
 
+NB! Mulig deadlock / endless go routine spawn i elevOffline network send
 
-
-Fiksa newElev og addElev, mangla bare elevOffline for å være komplett!
+Fiksa newElev, addElev og offlineElev cases og sjekk for tcp
 
 
 

@@ -19,6 +19,18 @@ func Commander(networkSend chan Message, commanderChan chan Message, aliveChan c
 			case <- tickerChan:
 					if notAliveCount == 5 {
 						Println("Master dead!")		// IMPLEMENT PANIC
+						message.Type = "elevOffline"
+						message.From = 1
+						for i := 2; i < ELEV_COUNT + 1; i++ {
+							if i != destination {		
+								Println("Sending elevOffline message to elev", i)				
+								message.To = i
+								networkSend <- message
+							}
+						}
+						message = "broadcast"
+						message.To = 2
+						networkSend <- message
 					}
 					notAliveCount++
 					

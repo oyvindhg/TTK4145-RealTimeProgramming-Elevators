@@ -23,13 +23,17 @@ type Message struct {
 }
 
 func Network(networkReceive chan Message, networkSend chan Message) {
+
 	recievedChannel := make(chan Message)
 	go listen(recievedChannel)
+
 	message := Message{}
 	appendable := true
 	destination := 0
 	readableFile := false
+
 	IPlist := make([]string, 1, ELEV_COUNT + 1)
+
 	addresses, err := net.InterfaceAddrs()
 	if err != nil {
 		Println("Address error: ", err)
@@ -44,7 +48,7 @@ func Network(networkReceive chan Message, networkSend chan Message) {
 
 	if IPlist[0] == MASTER_INIT_IP {
 		message.Type = "broadcast"
-		go startBroadcast(message, IPlist)
+		go startBroadcast(message, -1, IPlist)
 	}
 
 	if /* FILE PRESENT */ destination == -2 {
@@ -85,6 +89,8 @@ func Network(networkReceive chan Message, networkSend chan Message) {
 				switch{
 				case message.Type == "imAlive":
 					destination = -1
+				case message.Type == "broadcast":
+					detination = message.To
 				case message.Type == "newElev":
 					message.Content = IPlist[0]
 					if !readableFile {
@@ -94,8 +100,6 @@ func Network(networkReceive chan Message, networkSend chan Message) {
 					}
 				case message.Type == "addElev":
 					destination = message.To
-				case message.Type == "IPpackage":
-
 				case message.Type == "newOrder":
 					destination = 0
 				case message.Type == "deleteOrder":
@@ -140,6 +144,9 @@ func listen(recievedChannel chan Message) {
 }
 
 func send(message Message, destination int, IPlist[] string) {
+	if destination > len(IPlist) - 1 {
+		return
+	}
 	recipient := ""
 	switch{
 	case destination == -1:
@@ -148,23 +155,28 @@ func send(message Message, destination int, IPlist[] string) {
 		recipient = IPlist[destination]
 	}
 	connection, error := net.Dial("tcp", recipient+ PORT)
+	defer connection.Close()
+
 	if error != nil {
 		Println("Send connection error: ", error)
-
-		/*
-		ELEVATOR OFFLINE
-
+		
+		//ELEVATOR OFFLINE
 		message.Type = "elevOffline"
 		message.From = destination
 		for i := 1; i < len(IPlist); i++ {
 			if i != destination {
-				Println("Sending elevOffline message to rank", i)
-				go send(message, i, IPlist)
+				Println("Sending elevOffline message to elev", i)				
+				message.To = i
+				networkSend <- message
 			}
 		}
-		*/
+		if destination == 1 {
+			message = "broadcast"
+			message.To = 2
+			networkSend <- message
+		}
+		return
 	}
-	defer connection.Close()
 	byteMessage, err := Marshal(message)
 	if err != nil {
 		Println("Send error: ", err)
@@ -188,7 +200,7 @@ func receive(connection net.Conn, recievedChannel chan Message) {
 	recievedChannel <- message
 }
 
-func startBroadcast(message Message, IPlist[] string) {
+func startBroadcast(message Message, i int, IPlist[] string) {
 	Sleep(400 * Millisecond)
-	go send(message, -1, IPlist)
+	go send(message, i, IPlist)
 }
