@@ -1,52 +1,37 @@
 package fileManager
 
 import (
+	"os"
+	."fmt"
+	"bufio"
     "strings"
-    "io/ioutil"
-    ."fmt"
     "strconv"
-    "bufio"
-    "fmt"
-    "os"
+    "io/ioutil"    
 )
 
-
 func fileManager() {
-
 reader := bufio.NewReader(os.Stdin)
-fmt.Print("Enter text: ")
+Print("Enter text: ")
 text,_ := reader.ReadString('\n')
-
-
 	switch (text){
-		case "read\n":
-
-			inside := readInside()
-
+		case "Read\n":
+			inside := ReadInside()
 			Println(inside)
-
-		case "write\n":
-
-			writeInside(3, 1)
-
+		case "Write\n":
+			WriteInside(3, 1)
 		case "Readip\n":
-
 			IP := ReadIP()
-
 			Println(IP)
-
-		case "writeip\n":
-
-			writeIP("2324")
-
+		case "WriteIP\n":
+			WriteIP("2324")
 	}
 }
 
-func readInside() []int{
+func ReadInside() []int{
 
 	directory, err := os.Getwd()
 	    if err != nil {
-	        fmt.Println(err)
+	        Println(err)
 	        os.Exit(1)
 	    }
 
@@ -73,35 +58,29 @@ func readInside() []int{
 		    	if err != nil {
 				    Println("Error while writing to file!")
 				}
-		    	fmt.Printf("wrote %d bytes\n", writing)
+		    	Printf("wrote %d bytes\n", writing)
 
 		    	// Issue a `Sync` to flush writes to stable storage.
 		    	f.Sync()
 
 		    	return inside
-
 		}
-
-
 		strOrders := strings.Split(string(content), "\t")
-
 		inside[0] = 0
-
 		for i := range strOrders{
 			inside[i + 1],_ = strconv.Atoi(strOrders[i])
 		}
-
 		return inside
 }
 
 
-func writeInside(floor int, value int){
+func WriteInside(floor int, value int){
 
-	tempInside := readInside()
+	tempInside := ReadInside()
 
 	directory, err := os.Getwd()
 	    if err != nil {
-	        fmt.Println(err)
+	        Println(err)
 	        os.Exit(1)
 	    }
 
@@ -125,7 +104,7 @@ func writeInside(floor int, value int){
     	if err != nil {
 		    Println("Error while writing to file!")
 		}
-    	fmt.Printf("wrote %d bytes\n", writing)
+    	Printf("wrote %d bytes\n", writing)
 
     	// Issue a `Sync` to flush writes to stable storage.
     	f.Sync()
@@ -137,7 +116,7 @@ func ReadIP() []string{
 
 	directory, err := os.Getwd()
 	    if err != nil {
-	        fmt.Println(err)
+	        Println(err)
 	        os.Exit(1)
 	    }
 
@@ -167,13 +146,13 @@ func ReadIP() []string{
 }
 
 
-func writeIP(IP string){
+func WriteIP(IP string){
 
 	tempIPs := ReadIP()
 
 	directory, err := os.Getwd()
 	    if err != nil {
-	        fmt.Println(err)
+	        Println(err)
 	        os.Exit(1)
 	    }
 
@@ -208,7 +187,7 @@ func writeIP(IP string){
     	if err != nil {
 		    Println("Error while writing to file!")
 		}
-    	fmt.Printf("wrote %d bytes\n", writing)
+    	Printf("wrote %d bytes\n", writing)
 
     	// Issue a `Sync` to flush writes to stable storage.
     	f.Sync()

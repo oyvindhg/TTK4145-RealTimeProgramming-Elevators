@@ -3,6 +3,7 @@ package liftState
 import (
 	."time"
 	."../network"
+	."../fileManager"
 )
 
 type elevator struct {
@@ -17,7 +18,6 @@ func aliveBroadcast(commanderChan chan Message) {
 	for {	
 		Sleep(100 * Millisecond)
 		commanderChan <- message
-		//Println("aliveBroadcast")
 	}
 }
 
@@ -28,7 +28,7 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 	outUp 	:= make([]int, FLOOR_COUNT+1)
 	outDown	:= make([]int, FLOOR_COUNT+1)
 
-	message.Type = "newID"
+	message.Type = "newElev"
 	commanderChan <- message
 	
 	for{
@@ -44,14 +44,11 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 				case message.Type == "command":
 					commanderChan <- message
 
-				case message.Type == "newID":
+				case message.Type == "newElev":
 					elev = append(elev, elevator{0, 0, "Idle"})
-					
-				case message.Type == "connectionChange":
-					
 
-				case message.Type == "rankChange":
-					
+				case message.Type == "elevOffline":
+					elev = append(elev[:message.From], elev[message.From+1:]...)
 
 				case message.Type == "newOrder":
 					switch{

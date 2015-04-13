@@ -31,7 +31,7 @@ func Commander(networkSend chan Message, commanderChan chan Message, aliveChan c
 					case commanderMessage.Type == "imAlive":
 						networkSend <- commanderMessage
 	
-					case commanderMessage.Type == "newID":
+					case commanderMessage.Type == "newElev":
 						networkSend <- commanderMessage
 	
 					case commanderMessage.Type == "signal":

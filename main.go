@@ -40,25 +40,30 @@ func main(){
 
 /*
 
-Message
-Type, Content, Floor, Value, To, From 
-
-Type: "imAlive", "newElev", "newOrder", "deleteOrder", "newTarget", rankChange",
-          "stateUpdate", "connectionChange", "command", "floorReached", "signal"
-
-
 -----------------------------           TO DO           -------------------------------------
 
 FIX DEADLOCK IN NETWORK BROADCAST
 
-Death panic
+DEATH PANIC
+
+Network send tcp connection fail and elevOffline case
+
+Implement read/write in Liftstate
+
+Implement read/write in Network
+
+AddElev case i Network? Alle sender til Master og så sender den videre kopi til alle?
 
 Kostfunksjon i LiftState  (FloorReached i Commander blir handla av en stateUpdate i Liftstate)
 
-Master sender heisinfo når ny heis kobler seg på til de andre heisene + velkomstpakke til ny heis
+Velkomstpakke til ny heis i Liftstate, inkludert IPliste og ordre
 
-FIX APPEND TO SLICE (ELEV)
 
-Driverinputs til Commander
+
+Message
+Type, Content, Floor, Value, To, From 
+
+Type: "imAlive", "newElev", "newOrder", "deleteOrder", "newTarget", 
+      "stateUpdate", "offline", "command", "floorReached", "signal"
 
 */
