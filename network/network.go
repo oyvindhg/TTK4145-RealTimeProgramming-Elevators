@@ -26,6 +26,7 @@ func Network(networkReceive chan Message, networkSend chan Message) {
 	recievedChannel := make(chan Message)
 	go listen(recievedChannel)
 	message := Message{}
+	appendable := true
 	destination := 0
 	readableFile := false
 	IPlist := make([]string, 1, ELEV_COUNT + 1)
@@ -55,26 +56,46 @@ func Network(networkReceive chan Message, networkSend chan Message) {
 		select{
 			case message = <- recievedChannel:
 				switch{
-				case message.Type == "newElev" || message.Type "addElev":
+				case message.Type == "newElev":
 					IPlist = append(IPlist, message.Content)
+					WriteIP(message.Content)
+					message.Type = "addElev"
+					message.To = len(IPlist) - 1
+					if len(IPlist) > 2 && IPlist[0] == IPlist[1] {
+						for i := 1; i < len(IPlist); i++ {
+							message.Content = IPlist[i]
+							networkSend <- message
+						}
+					}
+				case message.Type == "addElev":
+					for i := 1; i < len(IPlist); i++ {
+						if IPlist[i] == message.Content {
+							appendable = false
+						}
+					}
+					if appendable {
+						IPlist = append(IPlist, message.Content)
+					}
 				case message.Type == "elevOffline":
 					IPlist = append(IPlist[:message.From], IPlist[message.From+1:]...)
 				}
 				networkReceive <- message
-
-
 
 			case message = <- networkSend:
 				switch{
 				case message.Type == "imAlive":
 					destination = -1
 				case message.Type == "newElev":
+					message.Content = IPlist[0]
 					if !readableFile {
 						destination = -1
 					} else {
-						destination = 1
+						destination = 0
 					}
-					message.Content = IPlist[0]
+				case message.Type == "addElev":
+					destination = message.To
+				case message.Type == "IPpackage":
+
 				case message.Type == "newOrder":
 					destination = 0
 				case message.Type == "deleteOrder":

@@ -58,6 +58,12 @@ Kostfunksjon i LiftState  (FloorReached i Commander blir handla av en stateUpdat
 
 Velkomstpakke til ny heis i Liftstate, inkludert IPliste og ordre
 
+NB! Vi må starte heisene i rekkefølge for at Master faktisk skal bli Master
+
+
+
+Fiksa newElev og addElev, mangla bare elevOffline for å være komplett!
+
 
 
 Message

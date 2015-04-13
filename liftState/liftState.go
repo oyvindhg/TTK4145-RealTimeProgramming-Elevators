@@ -22,6 +22,7 @@ func aliveBroadcast(commanderChan chan Message) {
 }
 
 func LiftState(networkReceive chan Message, commanderChan chan Message, aliveChan chan Message) {
+
 	message := Message{}
 	elev := make([]elevator, 1, ELEV_COUNT + 1)
 	inside 	:= make([]int, FLOOR_COUNT+1)
@@ -29,7 +30,7 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 	outDown	:= make([]int, FLOOR_COUNT+1)
 
 	message.Type = "newElev"
-	commanderChan <- message
+	networkSend <- message
 	
 	for{
 		select{
@@ -44,7 +45,7 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 				case message.Type == "command":
 					commanderChan <- message
 
-				case message.Type == "newElev":
+				case message.Type == "newElev" || message.Type == "addElev":
 					elev = append(elev, elevator{0, 0, "Idle"})
 
 				case message.Type == "elevOffline":
