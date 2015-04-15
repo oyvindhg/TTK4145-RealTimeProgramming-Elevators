@@ -63,7 +63,10 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 					case message.Content == "outsideDown":
 						outDown[message.Floor] = 1
 					}
-						//CHECK IF NOT OWN ELEVATOR && INSIDE DON'T SEND SIGNALCHAN
+						
+					if message.Content == "inside" && message.From != message.To {
+						break
+					}
 					commanderChan <- message
 
 					// Kjør kostfunksjon (hvis noen er idle)
@@ -77,7 +80,10 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 					case message.Content == "outsideDown":
 						outDown[message.Floor] = 0
 					}
-						//CHECK IF NOT OWN ELEVATOR && INSIDE DON'T SEND SIGNALCHAN
+					
+					if message.Content == "inside" && message.From != message.To {
+						break
+					}
 					commanderChan <- message
 
 				case message.Type == "newTarget":

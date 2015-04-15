@@ -116,6 +116,11 @@ func Network(networkReceive chan Message, networkSend chan Message) {
 						}
 					}
 				}
+				for i := 0; i < len(IPlist); i++ {
+					if IPlist[0] == IPlist[i] {
+						message.From = i
+					}
+				}
 				if destination == 0 {
 					for i := 1; i < len(IPlist); i++ {
 						go send(message, i, IPlist)
@@ -144,6 +149,7 @@ func listen(recievedChannel chan Message) {
 }
 
 func send(message Message, destination int, IPlist[] string) {
+	message.To = destination
 	if destination > len(IPlist) - 1 {
 		return
 	}
