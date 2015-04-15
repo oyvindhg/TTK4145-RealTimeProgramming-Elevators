@@ -86,11 +86,24 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 					}
 					commanderChan <- message
 
+				case message.Type == "newFloor":
+					elev[message.From].floor = message.Floor
+
+				case message.Type == "floorReached":
+					elev[message.From].floor = message.Floor
+					if inside[message.Floor] == 1 || outUp[message.Floor] == 1 || outDown[message.Floor] == 1 {
+						message.Type = "command"
+						message.Content = "stop"
+						commanderChan <- message
+						message.Type = "deleteOrder"
+						commanderChan <- message
+					}
+
 				case message.Type == "newTarget":
-					(elev)[message.From].floorTarget = message.Floor
+					elev[message.From].floorTarget = message.Floor
 
 				case message.Type == "stateUpdate":
-					(elev)[message.From].state = message.Content
+					elev[message.From].state = message.Content
 					//If State == "Idle": Kjør kostfunksjon (hvis flere bestillinger)
 					//Legg til kode som gjør at Masters IP blir sendt om RecipientID pga timeOut for døra
 				}

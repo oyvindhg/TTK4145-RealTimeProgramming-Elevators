@@ -48,7 +48,7 @@ Implement read/write in Liftstate
 
 Implement read/write in Network
 
-Kostfunksjon i LiftState  (FloorReached i Commander blir handla av en stateUpdate i Liftstate)
+Kostfunksjon i LiftState
 
 
 
@@ -56,8 +56,11 @@ NB! Vi må starte heisene i rekkefølge for at Master faktisk skal bli Master
 
 NB! Mulig deadlock / endless go routine spawn i elevOffline network send
 
-Fiksa newElev, addElev og offlineElev cases og sjekk for tcp
+Fiksa newElev, addElev og offlineElev cases og sjekk for tcp 
 
+La til sjekk for å ikke sende lys-signal hvis ikke egen inside order
+
+La til floorReached case i liftstate
 
 
 Message

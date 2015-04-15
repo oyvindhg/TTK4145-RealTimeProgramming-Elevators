@@ -28,9 +28,7 @@ func Network(networkReceive chan Message, networkSend chan Message) {
 	go listen(recievedChannel)
 
 	message := Message{}
-	appendable := true
-	destination := 0
-	readableFile := false
+	fileReadable := false
 
 	IPlist := make([]string, 1, ELEV_COUNT + 1)
 
@@ -51,8 +49,8 @@ func Network(networkReceive chan Message, networkSend chan Message) {
 		go startBroadcast(message, -1, IPlist)
 	}
 
-	if /* FILE PRESENT */ destination == -2 {
-		readableFile = true
+	if /* FILE PRESENT */ 1 == 0 {
+		fileReadable = true
 		//FILL IN IP-adresses
 	}
 
@@ -72,6 +70,7 @@ func Network(networkReceive chan Message, networkSend chan Message) {
 						}
 					}
 				case message.Type == "addElev":
+					appendable := true
 					for i := 1; i < len(IPlist); i++ {
 						if IPlist[i] == message.Content {
 							appendable = false
@@ -86,47 +85,38 @@ func Network(networkReceive chan Message, networkSend chan Message) {
 				networkReceive <- message
 
 			case message = <- networkSend:
-				switch{
-				case message.Type == "imAlive":
-					destination = -1
-				case message.Type == "broadcast":
-					detination = message.To
-				case message.Type == "newElev":
-					message.Content = IPlist[0]
-					if !readableFile {
-						destination = -1
-					} else {
-						destination = 0
-					}
-				case message.Type == "addElev":
-					destination = message.To
-				case message.Type == "newOrder":
-					destination = 0
-				case message.Type == "deleteOrder":
-					destination = 0
-				case message.Type == "newTarget":
-					destination = message.To
-				case message.Type == "stateUpdate":
-					destination = 0
-				case message.Type == "floorReached":
-					for i := 1; i < len(IPlist); i++ {
-						if IPlist[0] == IPlist[i] {
-							destination = i
-							break
-						}
-					}
-				}
 				for i := 0; i < len(IPlist); i++ {
 					if IPlist[0] == IPlist[i] {
 						message.From = i
+						break
 					}
 				}
-				if destination == 0 {
+				switch{
+				case message.Type == "imAlive":
+					message.To = -1
+				case message.Type == "newElev":
+					message.Content = IPlist[0]
+					if !fileReadable {
+						message.To = -1
+					} else {
+						message.To = 0
+					}
+				case message.Type == "newOrder":
+					message.To = 0
+				case message.Type == "deleteOrder":
+					message.To = 0
+				case message.Type == "stateUpdate":
+					message.To = 0
+				case message.Type == "floorReached":
+					message.To = message.From
+				}
+				if message.To == 0 {
 					for i := 1; i < len(IPlist); i++ {
-						go send(message, i, IPlist)
+						message.To = i
+						go send(message, IPlist)
 					}
 				} else {
-					go send(message, destination, IPlist)
+					go send(message, IPlist)
 				}
 				
 		}
@@ -148,17 +138,16 @@ func listen(recievedChannel chan Message) {
 	}
 }
 
-func send(message Message, destination int, IPlist[] string) {
-	message.To = destination
-	if destination > len(IPlist) - 1 {
+func send(message Message, IPlist[] string) {
+	if message.To > len(IPlist) - 1 {
 		return
 	}
 	recipient := ""
 	switch{
-	case destination == -1:
+	case message.To == -1:
 		recipient = MASTER_INIT_IP
-	case destination > 0:
-		recipient = IPlist[destination]
+	case message.To > 0:
+		recipient = IPlist[message.To]
 	}
 	connection, error := net.Dial("tcp", recipient+ PORT)
 	defer connection.Close()
@@ -168,15 +157,15 @@ func send(message Message, destination int, IPlist[] string) {
 		
 		//ELEVATOR OFFLINE
 		message.Type = "elevOffline"
-		message.From = destination
+		message.From = message.To
 		for i := 1; i < len(IPlist); i++ {
-			if i != destination {
+			if i != message.To {
 				Println("Sending elevOffline message to elev", i)				
 				message.To = i
 				networkSend <- message
 			}
 		}
-		if destination == 1 {
+		if message.To == 1 {
 			message = "broadcast"
 			message.To = 2
 			networkSend <- message

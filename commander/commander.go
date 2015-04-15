@@ -55,6 +55,9 @@ func Commander(networkSend chan Message, commanderChan chan Message, aliveChan c
 							message.Type = "door"
 							message.Value = 3
 							timerChan <- message
+							message.Type = "stateUpdate"
+							message.Content = "Open"
+							networkSend <- message
 							message.Value = 0
 						}
 						message.Type = "engine"
