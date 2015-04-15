@@ -56,11 +56,17 @@ NB! Vi må starte heisene i rekkefølge for at Master faktisk skal bli Master
 
 NB! Mulig deadlock / endless go routine spawn i elevOffline network send
 
+
 Fiksa newElev, addElev og offlineElev cases og sjekk for tcp 
 
 La til sjekk for å ikke sende lys-signal hvis ikke egen inside order
 
 La til floorReached case i liftstate
+
+Rydda opp i variabelnavn i network
+
+La til localhost option i network
+
 
 
 Message

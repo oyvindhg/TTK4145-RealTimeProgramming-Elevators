@@ -108,7 +108,7 @@ func Network(networkReceive chan Message, networkSend chan Message) {
 				case message.Type == "stateUpdate":
 					message.To = 0
 				case message.Type == "floorReached":
-					message.To = message.From
+					message.To = -2
 				}
 				if message.To == 0 {
 					for i := 1; i < len(IPlist); i++ {
@@ -144,6 +144,9 @@ func send(message Message, IPlist[] string) {
 	}
 	recipient := ""
 	switch{
+	case message.To == -2:
+		message.To = message.From
+		recipient = "localhost"
 	case message.To == -1:
 		recipient = MASTER_INIT_IP
 	case message.To > 0:

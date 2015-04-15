@@ -91,7 +91,7 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 
 				case message.Type == "floorReached":
 					elev[message.From].floor = message.Floor
-					if inside[message.Floor] == 1 || outUp[message.Floor] == 1 || outDown[message.Floor] == 1 {
+					if inside[message.Floor] == 1 || outUp[message.Floor] == 1 || outDown[message.Floor] == 1 || elev[message.To].floorTarget == 0 {
 						message.Type = "command"
 						message.Content = "stop"
 						commanderChan <- message
@@ -105,7 +105,6 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 				case message.Type == "stateUpdate":
 					elev[message.From].state = message.Content
 					//If State == "Idle": Kjør kostfunksjon (hvis flere bestillinger)
-					//Legg til kode som gjør at Masters IP blir sendt om RecipientID pga timeOut for døra
 				}
 		}
 	}
