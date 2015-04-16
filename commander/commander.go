@@ -5,7 +5,7 @@ import (
 	."../network"
 )
 
-func Commander(networkSend chan Message, commanderChan chan Message, aliveChan chan Message, tickerChan chan string, timerChan chan Message, timeOutChan chan string, driverInChan chan Message, driverOutChan chan Message) {
+func Commander(networkSend chan Message, commanderChan chan Message, aliveChan chan Message, tickerChan chan Message, timerChan chan Message, timeOutChan chan Message, driverInChan chan Message, driverOutChan chan Message) {
 	
 	notAliveCount := 0
 	message := Message{}
@@ -16,8 +16,9 @@ func Commander(networkSend chan Message, commanderChan chan Message, aliveChan c
 
 	for {
 		select {
-			case <- tickerChan:
+			case message = <- tickerChan:
 					if notAliveCount == 5 {
+						destination := message.To
 						Println("Master dead!")		// IMPLEMENT PANIC
 						message.Type = "elevOffline"
 						message.From = 1
@@ -28,7 +29,7 @@ func Commander(networkSend chan Message, commanderChan chan Message, aliveChan c
 								networkSend <- message
 							}
 						}
-						message = "broadcast"
+						message.Type = "broadcast"
 						message.To = 2
 						networkSend <- message
 					}
@@ -71,8 +72,7 @@ func Commander(networkSend chan Message, commanderChan chan Message, aliveChan c
 					driverOutChan <- message
 				}
 						
-			case timeOut := <- timeOutChan:
-				message.Type = timeOut
+			case message = <- timeOutChan:
 				driverOutChan <- message
 
 				message.Type = "stateUpdate"

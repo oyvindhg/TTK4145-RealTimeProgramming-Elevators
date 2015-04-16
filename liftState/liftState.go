@@ -3,7 +3,7 @@ package liftState
 import (
 	."time"
 	."../network"
-	."../fileManager"
+	//."../fileManager"
 )
 
 type elevator struct {
@@ -30,7 +30,7 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 	outDown	:= make([]int, FLOOR_COUNT+1)
 
 	message.Type = "newElev"
-	networkSend <- message
+	commanderChan <- message
 
 	// READ INSIDEORDERS FROM FILE
 	
@@ -87,10 +87,10 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 					commanderChan <- message
 
 				case message.Type == "newFloor":
-					elev[message.From].floor = message.Floor
+					elev[message.From].floorNum = message.Floor
 
 				case message.Type == "floorReached":
-					elev[message.From].floor = message.Floor
+					elev[message.From].floorNum = message.Floor
 					if inside[message.Floor] == 1 || outUp[message.Floor] == 1 || outDown[message.Floor] == 1 || elev[message.To].floorTarget == 0 {
 						message.Type = "command"
 						message.Content = "stop"

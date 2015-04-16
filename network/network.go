@@ -10,8 +10,8 @@ import (
 
 const ELEV_COUNT = 3
 const FLOOR_COUNT = 4
-const MASTER_INIT_IP = "129.241.187.92"
-const PORT = ":20001"
+const MASTER_INIT_IP = "129.241.187.154"
+const PORT = ":20007"
 
 type Message struct {
 	Type string
@@ -46,7 +46,7 @@ func Network(networkReceive chan Message, networkSend chan Message) {
 
 	if IPlist[0] == MASTER_INIT_IP {
 		message.Type = "broadcast"
-		go startBroadcast(message, -1, IPlist)
+		go startBroadcast(message, -1, IPlist, networkSend)
 	}
 
 	if /* FILE PRESENT */ 1 == 0 {
@@ -113,10 +113,10 @@ func Network(networkReceive chan Message, networkSend chan Message) {
 				if message.To == 0 {
 					for i := 1; i < len(IPlist); i++ {
 						message.To = i
-						go send(message, IPlist)
+						go send(message, IPlist, networkSend)
 					}
 				} else {
-					go send(message, IPlist)
+					go send(message, IPlist, networkSend)
 				}
 				
 		}
@@ -138,7 +138,7 @@ func listen(recievedChannel chan Message) {
 	}
 }
 
-func send(message Message, IPlist[] string) {
+func send(message Message, IPlist[] string, networkSend chan Message) {
 	if message.To > len(IPlist) - 1 {
 		return
 	}
@@ -169,7 +169,7 @@ func send(message Message, IPlist[] string) {
 			}
 		}
 		if message.To == 1 {
-			message = "broadcast"
+			message.Type = "broadcast"
 			message.To = 2
 			networkSend <- message
 		}
@@ -198,7 +198,7 @@ func receive(connection net.Conn, recievedChannel chan Message) {
 	recievedChannel <- message
 }
 
-func startBroadcast(message Message, i int, IPlist[] string) {
+func startBroadcast(message Message, i int, IPlist[] string, networkSend chan Message) {
 	Sleep(400 * Millisecond)
-	go send(message, i, IPlist)
+	go send(message, IPlist, networkSend)
 }

@@ -5,7 +5,7 @@ import (
 	."../network"
 )
 
-func Timekeeper(tickerChan chan string, timerChan chan Message, timeOutChan chan string) {
+func Timekeeper(tickerChan chan Message, timerChan chan Message, timeOutChan chan Message) {
 	for {
 		select {
 		case input := <- timerChan:
@@ -19,7 +19,7 @@ func Timekeeper(tickerChan chan string, timerChan chan Message, timeOutChan chan
 	}
 }
 
-func doorTimer(input Message, timeOutChan chan string) {
+func doorTimer(input Message, timeOutChan chan Message) {
 	switch{
 	case input.Content == "Second":
 		Sleep(Duration(input.Value) * Second)
@@ -28,10 +28,10 @@ func doorTimer(input Message, timeOutChan chan string) {
 	case input.Content == "MicroSecond":
 		Sleep(Duration(input.Value) * Microsecond)
 	}
-	timeOutChan <- input.Type
+	timeOutChan <- input
 }
 
-func aliveTicker(input Message, tickerChan chan string) {
+func aliveTicker(input Message, tickerChan chan Message) {
 	tick := Tick(0 * Second)
 	switch{
 		case input.Content == "Second":
@@ -42,7 +42,7 @@ func aliveTicker(input Message, tickerChan chan string) {
 			tick = Tick(Duration(input.Value) * Microsecond)
 	}
 	for now := range tick {
-		tickerChan <- input.Type
+		tickerChan <- input
 		_ = now
 	}
 }

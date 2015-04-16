@@ -12,14 +12,14 @@ import(
 
 func main(){
 
-	mainWaitChan := make(chan int)
+	mainWaitChan := make(chan Message)
 	networkSend := make(chan Message)
 	networkReceive := make(chan Message)
 	commanderChan := make(chan Message)
 	aliveChan := make(chan Message)
 	timerChan := make(chan Message)
-	tickerChan := make(chan string)
-	timeOutChan := make(chan string)
+	tickerChan := make(chan Message)
+	timeOutChan := make(chan Message)
 	driverInChan := make(chan Message)
 	driverOutChan := make(chan Message)
 
