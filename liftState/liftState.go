@@ -1,7 +1,7 @@
 package liftState
 
 import (
-	."fmt"
+	//."fmt"
 	."time"
 	."../network"
 	//."../fileManager"
@@ -76,6 +76,8 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 					if message.Content == "inside" && message.From != message.To {
 						break
 					}
+					message.Type = "signal"
+					message.Value = 1
 					commanderChan <- message
 
 					// Kjør kostfunksjon (hvis noen er idle)
@@ -93,6 +95,8 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 					if message.Content == "inside" && message.From != message.To {
 						break
 					}
+					message.Type = "signal"
+					message.Value = 0
 					commanderChan <- message
 
 				case message.Type == "newFloor":
@@ -100,13 +104,23 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 
 				case message.Type == "floorReached":
 					elev[message.From].floorNum = message.Floor
-					if inside[message.Floor] == 1 || outUp[message.Floor] == 1 || outDown[message.Floor] == 1 {
+					if inside[message.Floor] == 1 || outUp[message.Floor] == 1 && elev[message.From].state == "MovingUp" || outDown[message.Floor] == 1 && elev[message.From].state == "MovingDown"{
 						message.Type = "command"
 						message.Content = "stop"
 						commanderChan <- message
 						message.Type = "deleteOrder"
-						commanderChan <- message
-						Println("floorReached queue not empty")
+						if inside[message.Floor] == 1 {
+							message.Content = "inside"
+							commanderChan <- message
+						}
+						if outUp[message.Floor] == 1 {
+							message.Content = "outsideUp"
+							commanderChan <- message
+						}
+						if outDown[message.Floor] == 1 {
+							message.Content = "outsideDown"
+							commanderChan <- message
+						}
 						break
 					}
 					emptyQueue := true

@@ -41,7 +41,7 @@ func Commander(networkSend chan Message, commanderChan chan Message, aliveChan c
 
 			case commanderMessage := <- commanderChan:
 				switch {
-				case commanderMessage.Type == "imAlive" || commanderMessage.Type == "newElev" || commanderMessage.Type == "addElev":
+				case commanderMessage.Type == "imAlive" || commanderMessage.Type == "newElev" || commanderMessage.Type == "addElev" || commanderMessage.Type == "deleteOrder":
 					networkSend <- commanderMessage
 
 				case commanderMessage.Type == "signal":
@@ -73,6 +73,7 @@ func Commander(networkSend chan Message, commanderChan chan Message, aliveChan c
 				}
 						
 			case message = <- timeOutChan:
+				message.Content = "door"
 				message.Value = 0
 				driverOutChan <- message
 

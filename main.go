@@ -45,8 +45,6 @@ func main(){
 
 -----------------------------           TO DO           -------------------------------------
 
-Implement read/write in Liftstate
-
 Kostfunksjon i LiftState
 
 

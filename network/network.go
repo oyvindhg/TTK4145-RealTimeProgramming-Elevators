@@ -100,7 +100,7 @@ func Network(networkReceive chan Message, networkSend chan Message, fileInChan c
 				networkReceive <- message
 
 			case message = <- networkSend:
-				for i := 0; i < len(IPlist); i++ {
+				for i := 1; i < len(IPlist); i++ {
 					if IPlist[0] == IPlist[i] {
 						message.From = i
 						break

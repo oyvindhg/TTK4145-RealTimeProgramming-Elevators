@@ -1,7 +1,7 @@
 package driver
 
 import (
-	//."fmt"
+	."fmt"
 	."time"
 	."../network"
 )
@@ -22,11 +22,11 @@ func DriverInit(driverInChan chan Message, driverOutChan chan Message) (bool) {
 	if !IOInit() {
 		return false
 	}
-	for floor := 0; floor < N_FLOORS; floor++ {
-		if floor != 0 {
-			elevSetButtonLamp("outSideDown", floor, 0)
+	for floor := 1; floor < N_FLOORS + 1; floor++ {
+		if floor != 1 {
+			elevSetButtonLamp("outsideDown", floor, 0)
 		}
-		if floor != N_FLOORS - 1 {
+		if floor != N_FLOORS {
 			elevSetButtonLamp("outsideUp", floor, 0)
 		}
 		elevSetButtonLamp("inside", floor, 0)
@@ -73,7 +73,7 @@ func driverReader(driverInChan chan Message, floorSensors[] int, buttonChannelMa
 						case j == 1:
 							message.Type = "outsideDown"
 						}
-						message.Value = i
+						message.Floor = i + 1
 						driverInChan <- message
 						buttonSignalLastCheckMatrix[i][j] = 1
 
@@ -134,11 +134,12 @@ func driverWriter(driverOutChan chan Message, floorSensors[] int) {
 					}
 				case message.Type == "floorReached":
 					elevSetFloorIndicator(message.Floor)
-				case message.Type == "inside" || message.Type == "outsideUp" || message.Type == "outsideDown":
+				case message.Content == "inside" || message.Content == "outsideUp" || message.Content == "outsideDown":
 					elevSetButtonLamp(message.Content, message.Floor, message.Value)
-				case message.Type == "stop":
+				case message.Content == "stop":
 					elevSetStopLamp(message.Value)
-				case message.Type == "door":
+				case message.Content == "door":
+					Println(message)
 					elevSetDoorOpenLamp(message.Value)
 			}
 		}
