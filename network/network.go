@@ -45,8 +45,8 @@ func Network(networkReceive chan Message, networkSend chan Message, fileInChan c
 
 	if IPlist[0] == MASTER_INIT_IP {
 		message.Type = "master"
-		//go startBroadcast(message, -1, IPlist, networkSend)
-		go send(message, IPlist, networkSend)
+		go startBroadcast(message, -1, IPlist, networkSend)
+		//go send(message, IPlist, networkSend)
 	}
 
 	for i := 1; i < ELEV_COUNT + 1; i++ {
@@ -210,9 +210,8 @@ func receive(connection net.Conn, recievedChannel chan Message) {
 	}
 	recievedChannel <- message
 }
-/*
+
 func startBroadcast(message Message, i int, IPlist[] string, networkSend chan Message) {
-	//Sleep(400 * Millisecond)
+	Sleep(400 * Millisecond)
 	go send(message, IPlist, networkSend)
 }
-*/

@@ -1,7 +1,7 @@
 package driver
 
 import (
-	."fmt"
+	//."fmt"
 	."time"
 	."../network"
 )
@@ -122,7 +122,6 @@ func driverWriter(driverOutChan chan Message, floorSensors[] int) {
 	for {
 		select {
 		case message := <- driverOutChan:
-			Println(message)
 			switch {
 				case message.Type == "engine":
 					elevSetEngineSpeed(message.Content)		// 0 = stop, 1 = up, -1 = down
@@ -140,7 +139,6 @@ func driverWriter(driverOutChan chan Message, floorSensors[] int) {
 				case message.Type == "stop":
 					elevSetStopLamp(message.Value)
 				case message.Type == "door":
-					Println("door value", message.Value)
 					elevSetDoorOpenLamp(message.Value)
 			}
 		}

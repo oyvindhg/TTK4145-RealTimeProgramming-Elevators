@@ -33,7 +33,15 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 	message.Type = "newElev"
 	commanderChan <- message
 
-	// READ INSIDEORDERS FROM FILE
+	for i := 1; i < FLOOR_COUNT + 1; i++ {
+		message.Type = "readInside"
+		message.Floor = i
+		fileOutChan <- message
+		message = <- fileInChan
+		if message.Value != -1 {
+			inside[i] = message.Value
+		}
+	}
 	
 	for{
 		select{
