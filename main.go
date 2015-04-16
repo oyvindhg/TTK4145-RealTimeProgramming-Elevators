@@ -12,6 +12,8 @@ import(
 
 func main(){
 
+	fileInChan := make(chan Message)
+	fileOutChan := make(chan Message)
 	mainWaitChan := make(chan Message)
 	networkSend := make(chan Message)
 	networkReceive := make(chan Message)
@@ -27,11 +29,12 @@ func main(){
 		Println("Driver init failed!")
 		return
 	}
+	go FileManager(fileInChan, fileOutChan)
 	go Timekeeper(tickerChan, timerChan, timeOutChan)
-	go Network(networkReceive, networkSend)
-	go LiftState(networkReceive, commanderChan, aliveChan)
+	go Network(networkReceive, networkSend, fileInChan, fileOutChan)
+	go LiftState(networkReceive, commanderChan, aliveChan, fileInChan, fileOutChan)
 	go Commander(networkSend, commanderChan, aliveChan, tickerChan, timerChan, timeOutChan, driverInChan, driverOutChan)
-	go ReadIP()
+
 	select{
 		case <- mainWaitChan:
 	}
@@ -42,32 +45,14 @@ func main(){
 
 -----------------------------           TO DO           -------------------------------------
 
-FIX DEADLOCK IN NETWORK BROADCAST
-
 Implement read/write in Liftstate
-
-Implement read/write in Network
 
 Kostfunksjon i LiftState
 
 
-
-NB! Vi må starte heisene i rekkefølge for at Master faktisk skal bli Master
+NB! Mulig deadlock i alive-broadcast init
 
 NB! Mulig deadlock / endless go routine spawn i elevOffline network send
-
-
-Fiksa newElev, addElev og offlineElev cases og sjekk for tcp 
-
-La til sjekk for å ikke sende lys-signal hvis ikke egen inside order
-
-La til floorReached case i liftstate
-
-Rydda opp i variabelnavn i network
-
-La til localhost option i network
-
-
 
 Message
 Type, Content, Floor, Value, To, From 

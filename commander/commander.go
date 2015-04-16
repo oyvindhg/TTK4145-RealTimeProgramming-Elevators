@@ -37,7 +37,7 @@ func Commander(networkSend chan Message, commanderChan chan Message, aliveChan c
 					
 			case <- aliveChan:
 				notAliveCount = 0
-				Println("Alive")
+				//Println("Alive")
 
 			case commanderMessage := <- commanderChan:
 				switch {
@@ -52,12 +52,12 @@ func Commander(networkSend chan Message, commanderChan chan Message, aliveChan c
 						message.Type = "stateUpdate"
 						message.Content = "MovingUp"
 						networkSend <- message
-						message.Value = 1
+						message.Content = "up"
 					} else if commanderMessage.Content == "down" {
 						message.Type = "stateUpdate"
 						message.Content = "MovingDown"
 						networkSend <- message
-						message.Value = -1
+						message.Content = "down"
 					} else if commanderMessage.Content == "stop" {
 						message.Type = "door"
 						message.Content = "Second"
@@ -66,13 +66,14 @@ func Commander(networkSend chan Message, commanderChan chan Message, aliveChan c
 						message.Type = "stateUpdate"
 						message.Content = "Open"
 						networkSend <- message
-						message.Value = 0
+						message.Content = "stop"
 					}
 					message.Type = "engine"
 					driverOutChan <- message
 				}
 						
 			case message = <- timeOutChan:
+				message.Value = 0
 				driverOutChan <- message
 
 				message.Type = "stateUpdate"
@@ -80,15 +81,15 @@ func Commander(networkSend chan Message, commanderChan chan Message, aliveChan c
 				networkSend <- message
 	
 			case driverInput := <- driverInChan:  //floorReached, inside, outsideUp, outsideDown, stop, obstr
+				driverInput.Content = driverInput.Type
+				driverInput.Floor = driverInput.Floor
 				switch {
 				case driverInput.Type == "inside" || driverInput.Type == "outsideUp" || driverInput.Type == "outsideDown":
-					message.Type = "newOrder"
-				case driverInput.Type == "floorReached" || driverInput.Type == "stop" || driverInput.Type == "obstr":
-					message.Type = "stateUpdate"
+					driverInput.Type = "newOrder"
+				case driverInput.Type == "stop" || driverInput.Type == "obstr":
+					driverInput.Type = "stateUpdate"
 				}
-				message.Content = driverInput.Type
-				message.Floor = driverInput.Floor
-				networkSend <- message
+				networkSend <- driverInput
 		}
 	}
 }

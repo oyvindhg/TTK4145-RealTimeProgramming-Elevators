@@ -1,6 +1,7 @@
 package driver
 
 import (
+	."fmt"
 	."time"
 	."../network"
 )
@@ -31,7 +32,7 @@ func DriverInit(driverInChan chan Message, driverOutChan chan Message) (bool) {
 		elevSetButtonLamp("inside", floor, 0)
 	}
 	elevSetStopLamp(0)
-	elevSetEngineSpeed(0)
+	elevSetEngineSpeed("stop")
 	elevSetDoorOpenLamp(0)
 	elevSetFloorIndicator(1)
 
@@ -42,7 +43,7 @@ func DriverInit(driverInChan chan Message, driverOutChan chan Message) (bool) {
 		}
 	}
 	if inFloor == 0 {
-		elevSetEngineSpeed(-1)
+		elevSetEngineSpeed("down")
 	}
 	go driverReader(driverInChan, floorSensors, buttonChannelMatrix)
 	go driverWriter(driverOutChan, floorSensors)
@@ -121,37 +122,39 @@ func driverWriter(driverOutChan chan Message, floorSensors[] int) {
 	for {
 		select {
 		case message := <- driverOutChan:
+			Println(message)
 			switch {
-				case message.Content == "engine":
-					elevSetEngineSpeed(message.Value)		// 0 = stop, 1 = up, -1 = down
-					if message.Value == 0 {
+				case message.Type == "engine":
+					elevSetEngineSpeed(message.Content)		// 0 = stop, 1 = up, -1 = down
+					if message.Content == "stop" {
 						for i := 0; i < N_FLOORS; i++ {
 							if IOReadBit(floorSensors[i]) != 0 {
 								elevSetDoorOpenLamp(1)
 							}
 						}
 					}
-				case message.Content == "floorReached":
+				case message.Type == "floorReached":
 					elevSetFloorIndicator(message.Floor)
-				case message.Content == "inside" || message.Content == "outsideUp" || message.Content == "outsideDown":
+				case message.Type == "inside" || message.Type == "outsideUp" || message.Type == "outsideDown":
 					elevSetButtonLamp(message.Content, message.Floor, message.Value)
-				case message.Content == "stop":
+				case message.Type == "stop":
 					elevSetStopLamp(message.Value)
-				case message.Content == "door":
+				case message.Type == "door":
+					Println("door value", message.Value)
 					elevSetDoorOpenLamp(message.Value)
 			}
 		}
 	}
 }
 
-func elevSetEngineSpeed(value int) {
+func elevSetEngineSpeed(direction string) {
 	switch {
-	case value == 0:
+	case direction == "stop":
 		IOWriteAnalog(MOTOR, 0)
-	case value == 1:
+	case direction == "up":
 		IOWriteAnalog(MOTORDIR, 0)
 		IOWriteAnalog(MOTOR, 2800)
-	case value == -1:
+	case direction == "down":
 		IOWriteAnalog(MOTORDIR, 1)
 		IOWriteAnalog(MOTOR, 2800)
 	}

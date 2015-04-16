@@ -3,31 +3,46 @@ package fileManager
 import (
 	"os"
 	."fmt"
-	"bufio"
+	//"bufio"
     "strings"
     "strconv"
-    "io/ioutil"    
+    "io/ioutil"
+    ."../network"
 )
 
-func fileManager() {
-reader := bufio.NewReader(os.Stdin)
-Print("Enter text: ")
-text,_ := reader.ReadString('\n')
-	switch (text){
-		case "Read\n":
-			inside := ReadInside()
-			Println(inside)
-		case "Write\n":
-			WriteInside(3, 1)
-		case "Readip\n":
-			IP := ReadIP()
-			Println(IP)
-		case "WriteIP\n":
-			WriteIP("2324")
+func FileManager(fileInChan chan Message, fileOutChan chan Message) {
+	for {
+		select {
+		case message := <- fileOutChan:
+			switch{
+				case message.Type == "writeIP":
+					writeIP(message.Content)
+				case message.Type == "writeInside":
+					writeInside(message.Floor, message.Value)
+				case message.Type == "readIP":
+					IPs := readIP()
+					if message.Value < len(IPs) {
+						message.Content = IPs[message.Value]
+						fileInChan <- message
+					} else {
+						message.Content = "noIP"
+						fileInChan <- message
+					}
+				case message.Type == "readInside":
+					inside := readInside()
+					if message.Floor < len(inside) + 1 {
+						message.Value = inside[message.Floor]
+						fileInChan <- message
+					} else {
+						message.Value = -1
+						fileInChan <- message
+					}
+			}
+		}
 	}
 }
 
-func ReadInside() []int{
+func readInside() []int{
 
 	directory, err := os.Getwd()
 	    if err != nil {
@@ -74,9 +89,9 @@ func ReadInside() []int{
 }
 
 
-func WriteInside(floor int, value int){
+func writeInside(floor int, value int){
 
-	tempInside := ReadInside()
+	tempInside := readInside()
 
 	directory, err := os.Getwd()
 	    if err != nil {
@@ -111,7 +126,7 @@ func WriteInside(floor int, value int){
 }
 
 
-func ReadIP() []string{
+func readIP() []string{
 
 
 	directory, err := os.Getwd()
@@ -146,9 +161,9 @@ func ReadIP() []string{
 }
 
 
-func WriteIP(IP string){
+func writeIP(IP string){
 
-	tempIPs := ReadIP()
+	tempIPs := readIP()
 
 	directory, err := os.Getwd()
 	    if err != nil {

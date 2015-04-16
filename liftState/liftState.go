@@ -1,6 +1,7 @@
 package liftState
 
 import (
+	."fmt"
 	."time"
 	."../network"
 	//."../fileManager"
@@ -21,7 +22,7 @@ func aliveBroadcast(commanderChan chan Message) {
 	}
 }
 
-func LiftState(networkReceive chan Message, commanderChan chan Message, aliveChan chan Message) {
+func LiftState(networkReceive chan Message, commanderChan chan Message, aliveChan chan Message, fileInChan chan Message, fileOutChan chan Message) {
 
 	message := Message{}
 	elev := make([]elevator, 1, ELEV_COUNT + 1)
@@ -38,7 +39,7 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 		select{
 			case message = <- networkReceive:
 				switch{
-				case message.Type == "broadcast":
+				case message.Type == "master":
 					go aliveBroadcast(commanderChan)
 
 				case message.Type == "imAlive":
@@ -51,7 +52,7 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 					elev = append(elev, elevator{0, 0, "Idle"})
 
 				case message.Type == "elevOffline":
-					elev = append(elev[:message.From], elev[message.From+1:]...)
+					elev = append(elev[:message.Value], elev[message.Value+1:]...)
 
 				case message.Type == "newOrder":
 					switch{
@@ -91,11 +92,24 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 
 				case message.Type == "floorReached":
 					elev[message.From].floorNum = message.Floor
-					if inside[message.Floor] == 1 || outUp[message.Floor] == 1 || outDown[message.Floor] == 1 || elev[message.To].floorTarget == 0 {
+					if inside[message.Floor] == 1 || outUp[message.Floor] == 1 || outDown[message.Floor] == 1 {
 						message.Type = "command"
 						message.Content = "stop"
 						commanderChan <- message
 						message.Type = "deleteOrder"
+						commanderChan <- message
+						Println("floorReached queue not empty")
+						break
+					}
+					emptyQueue := true
+					for i := 1; i < FLOOR_COUNT + 1; i++ {
+						if inside[i] == 1 || outDown[i] == 1 || outUp[i] == 1 {
+							emptyQueue = false
+						}
+					}
+					if emptyQueue == true {
+						message.Type = "command"
+						message.Content = "stop"
 						commanderChan <- message
 					}
 

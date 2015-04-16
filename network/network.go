@@ -5,7 +5,6 @@ import (
 	."fmt"
 	."time"
 	."encoding/json"
-	."../fileManager"
 )
 
 const ELEV_COUNT = 3
@@ -22,13 +21,13 @@ type Message struct {
 	To int
 }
 
-func Network(networkReceive chan Message, networkSend chan Message) {
+func Network(networkReceive chan Message, networkSend chan Message, fileInChan chan Message, fileOutChan chan Message) {
 
 	recievedChannel := make(chan Message)
 	go listen(recievedChannel)
 
 	message := Message{}
-	fileReadable := false
+	fileEmpty := true
 
 	IPlist := make([]string, 1, ELEV_COUNT + 1)
 
@@ -45,13 +44,20 @@ func Network(networkReceive chan Message, networkSend chan Message) {
 	}
 
 	if IPlist[0] == MASTER_INIT_IP {
-		message.Type = "broadcast"
-		go startBroadcast(message, -1, IPlist, networkSend)
+		message.Type = "master"
+		//go startBroadcast(message, -1, IPlist, networkSend)
+		go send(message, IPlist, networkSend)
 	}
 
-	if /* FILE PRESENT */ 1 == 0 {
-		fileReadable = true
-		//FILL IN IP-adresses
+	for i := 1; i < ELEV_COUNT + 1; i++ {
+		message.Type = "readIP"
+		message.Value = i
+		fileOutChan <- message
+		message = <- fileInChan
+		if message.Content != "noIP" {
+			fileEmpty = false
+			IPlist = append(IPlist, message.Content)
+		}
 	}
 
 	for{
@@ -59,8 +65,17 @@ func Network(networkReceive chan Message, networkSend chan Message) {
 			case message = <- recievedChannel:
 				switch{
 				case message.Type == "newElev":
-					IPlist = append(IPlist, message.Content)
-					WriteIP(message.Content)
+					appendable := true
+					for i := 0; i < len(IPlist); i++ {
+						if IPlist[i] == message.Content {
+							appendable = false
+						}
+					}
+					if appendable {
+						IPlist = append(IPlist, message.Content)
+					}
+					message.Type = "writeIP"
+					fileOutChan <- message
 					message.Type = "addElev"
 					message.To = len(IPlist) - 1
 					if len(IPlist) > 2 && IPlist[0] == IPlist[1] {
@@ -80,7 +95,7 @@ func Network(networkReceive chan Message, networkSend chan Message) {
 						IPlist = append(IPlist, message.Content)
 					}
 				case message.Type == "elevOffline":
-					IPlist = append(IPlist[:message.From], IPlist[message.From+1:]...)
+					IPlist = append(IPlist[:message.Value], IPlist[message.Value+1:]...)
 				}
 				networkReceive <- message
 
@@ -91,12 +106,10 @@ func Network(networkReceive chan Message, networkSend chan Message) {
 						break
 					}
 				}
-				switch{
-				case message.Type == "imAlive":
-					message.To = -1
+				switch{							//0 = all, -1 = MASTER_INIT_IP, -2 = localhost
 				case message.Type == "newElev":
 					message.Content = IPlist[0]
-					if !fileReadable {
+					if fileEmpty {
 						message.To = -1
 					} else {
 						message.To = 0
@@ -160,17 +173,17 @@ func send(message Message, IPlist[] string, networkSend chan Message) {
 		
 		//ELEVATOR OFFLINE
 		message.Type = "elevOffline"
-		message.From = message.To
+		message.Value = message.To
 		for i := 1; i < len(IPlist); i++ {
-			if i != message.To {
+			if i != message.Value {
 				Println("Sending elevOffline message to elev", i)				
 				message.To = i
 				networkSend <- message
 			}
 		}
 		if message.To == 1 {
-			message.Type = "broadcast"
-			message.To = 2
+			Sleep(100 * Millisecond)
+			message.Type = "master"
 			networkSend <- message
 		}
 		return
@@ -197,8 +210,9 @@ func receive(connection net.Conn, recievedChannel chan Message) {
 	}
 	recievedChannel <- message
 }
-
+/*
 func startBroadcast(message Message, i int, IPlist[] string, networkSend chan Message) {
-	Sleep(400 * Millisecond)
+	//Sleep(400 * Millisecond)
 	go send(message, IPlist, networkSend)
 }
+*/
