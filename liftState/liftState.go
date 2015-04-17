@@ -80,7 +80,15 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 					message.Value = 1
 					commanderChan <- message
 
-					// Kjør kostfunksjon (hvis noen er idle)
+					if message.To == 1 {
+						for i := 1; i < len(elev); i++ {
+							if elev[i].state == "Idle" {
+								message.To = i
+								message.Type = "newTarget"
+								commanderChan <- message
+							}
+						}
+					}
 
 				case message.Type == "deleteOrder":
 					switch{
@@ -121,6 +129,9 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 							message.Content = "outsideDown"
 							commanderChan <- message
 						}
+						if elev[message.From].floorTarget == message.Floor {
+							elev[message.From].floorTarget = 0
+						}
 						break
 					}
 					emptyQueue := true
@@ -136,11 +147,33 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 					}
 
 				case message.Type == "newTarget":
+					elev[message.To].floorTarget = message.Floor
+					message.Type = "targetUpdate"
+					commanderChan <- message
+					if elev[message.To].state == "Idle" {
+						message.Type = "command"
+						if message.Floor > elev[message.To].FloorNum {
+							message.Content = "up"
+						} else if message.Floor < elev[message.To].FloorNum {
+							message.Content = "down"
+						}
+						commanderChan <- message
+					}
+
+				case message.Type == "targetUpdate":
 					elev[message.From].floorTarget = message.Floor
 
 				case message.Type == "stateUpdate":
 					elev[message.From].state = message.Content
-					//If State == "Idle": Kjør kostfunksjon (hvis flere bestillinger)
+					if elev[message.To].state == "Idle" {
+						message.Type = "command"
+						if message.Floor > elev[message.To].FloorNum {
+							message.Content = "up"
+						} else if message.Floor < elev[message.To].FloorNum {
+							message.Content = "down"
+						}
+						commanderChan <- message
+					}
 				}
 		}
 	}

@@ -41,7 +41,7 @@ func Commander(networkSend chan Message, commanderChan chan Message, aliveChan c
 
 			case commanderMessage := <- commanderChan:
 				switch {
-				case commanderMessage.Type == "imAlive" || commanderMessage.Type == "newElev" || commanderMessage.Type == "addElev" || commanderMessage.Type == "deleteOrder":
+				case commanderMessage.Type == "imAlive" || commanderMessage.Type == "newElev" || commanderMessage.Type == "newTarget" || commanderMessage.Type == "addElev" || commanderMessage.Type == "deleteOrder":
 					networkSend <- commanderMessage
 
 				case commanderMessage.Type == "signal":

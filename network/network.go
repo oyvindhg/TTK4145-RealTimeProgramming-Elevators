@@ -120,6 +120,8 @@ func Network(networkReceive chan Message, networkSend chan Message, fileInChan c
 					message.To = 0
 				case message.Type == "stateUpdate":
 					message.To = 0
+				case message.Type == "targetUpdate":
+					message.To = 0
 				case message.Type == "floorReached":
 					message.To = -2
 				}
