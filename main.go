@@ -47,6 +47,14 @@ func main(){
 
 Kostfunksjon i LiftState
 
+Må fikse MovingUp og MovingDown etc i LiftState
+
+Et par andre ting i LiftState (i kommentarer)
+
+Heisen går noen ganger helt feil retning enn det den skal
+
+Dørlyset virker ikke
+
 
 NB! Mulig deadlock i alive-broadcast init
 

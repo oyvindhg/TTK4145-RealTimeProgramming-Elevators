@@ -9,8 +9,8 @@ import (
 
 const ELEV_COUNT = 3
 const FLOOR_COUNT = 4
-const MASTER_INIT_IP = "129.241.187.154"
-const PORT = ":20007"
+const MASTER_INIT_IP = "129.241.187.145"
+const PORT = ":20017"
 
 type Message struct {
 	Type string

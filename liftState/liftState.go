@@ -73,21 +73,39 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 						outDown[message.Floor] = 1
 					}
 						
-					if message.Content == "inside" && message.From != message.To {
+					if message.Content == "inside" && message.From != message.To {							//Vil dette egentlig skje?
 						break
 					}
 					message.Type = "signal"
 					message.Value = 1
 					commanderChan <- message
 
-					if message.To == 1 {
+					if message.To == 1 {								//KOSTFUNKSJON
+						bestValue := FLOOR_COUNT
+						bestElev := 0
 						for i := 1; i < len(elev); i++ {
-							if elev[i].state == "Idle" {
-								message.To = i
-								message.Type = "newTarget"
-								commanderChan <- message
+							if message.Floor == FLOOR_COUNT && elev[i].floorNum == FLOOR_COUNT-1 && elev[i].state == "MovingUp"{
+								break
+							} else if message.Floor == 1 && elev[i].floorNum == 2 && elev[i].state == "MovingDown"{
+								break
+							} else if message.Floor - elev[i].floorNum == 1 && elev[i].state == "MovingUp"{
+								break
+							} else if message.Floor - elev[i].floorNum == -1 && elev[i].state == "MovingDown"{
+								break
+							}
+							if elev[i].state == "Idle"{
+								if message.Floor - elev[i].floorNum > 0 && message.Floor - elev[i].floorNum < bestValue{
+									bestValue = message.Floor - elev[i].floorNum
+									bestElev = i
+								} else if elev[i].floorNum - message.Floor > 0 && elev[i].floorNum - message.Floor < bestValue{
+									bestValue = elev[i].floorNum - message.Floor
+									bestElev = i
+								}
 							}
 						}
+						message.To = bestElev
+						message.Type = "newTarget"
+						commanderChan <- message
 					}
 
 				case message.Type == "deleteOrder":
@@ -148,13 +166,13 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 
 				case message.Type == "newTarget":
 					elev[message.To].floorTarget = message.Floor
-					message.Type = "targetUpdate"
+					message.Type = "targetUpdate"						//Hvor er denne typen i Driver?
 					commanderChan <- message
 					if elev[message.To].state == "Idle" {
 						message.Type = "command"
-						if message.Floor > elev[message.To].FloorNum {
+						if message.Floor > elev[message.To].floorNum {
 							message.Content = "up"
-						} else if message.Floor < elev[message.To].FloorNum {
+						} else if message.Floor < elev[message.To].floorNum {
 							message.Content = "down"
 						}
 						commanderChan <- message
@@ -165,11 +183,47 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 
 				case message.Type == "stateUpdate":
 					elev[message.From].state = message.Content
+
+					// DETTE ER NYTT
+
+					if elev[message.From].state == "Idle"{
+						if message.To == 1 {						// KOSTFUNKSJON
+							bestFloor := 0
+							i := 0
+							for{
+								if elev[message.From].floorNum + i <= FLOOR_COUNT + 1{
+									if outDown[elev[message.From].floorNum + i] == 1 ||  outUp[elev[message.From].floorNum + i] == 1 {
+										bestFloor = elev[message.From].floorNum + i
+										message.To = message.From
+										message.Type = "newTarget"
+										message.Floor = bestFloor
+										commanderChan <- message
+										break
+									}
+								} else if elev[message.From].floorNum - i > 0{
+									if outDown[elev[message.From].floorNum - i] == 1 ||  outUp[elev[message.From].floorNum - i] == 1 {
+										bestFloor = elev[message.From].floorNum - i
+										message.To = message.From
+										message.Type = "newTarget"
+										message.Floor = bestFloor
+										commanderChan <- message
+										break
+									}
+								} else{
+									break
+								}
+								i ++
+							}
+						}
+					}
+
+					// HER SLUTTER DET NYE
+
 					if elev[message.To].state == "Idle" {
 						message.Type = "command"
-						if message.Floor > elev[message.To].FloorNum {
+						if message.Floor > elev[message.To].floorNum {		//wtf.. message.Floor er vel ikke bestemt i stateUpdate? Er det ikke her master skal sjekke om heisen skal få en ny oppgave?
 							message.Content = "up"
-						} else if message.Floor < elev[message.To].FloorNum {
+						} else if message.Floor < elev[message.To].floorNum {
 							message.Content = "down"
 						}
 						commanderChan <- message
