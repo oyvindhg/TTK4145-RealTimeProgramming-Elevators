@@ -1,48 +1,58 @@
 package timer
 
 import (
+	."fmt"
 	."time"
 	."../network"
 )
 
 func Timekeeper(tickerChan chan Message, timerChan chan Message, timeOutChan chan Message) {
+	closeDoor := 0
 	for {
 		select {
-		case input := <- timerChan:
+		case message := <- timerChan:
 			switch {
-			case input.Type == "door":
-				go doorTimer(input, timeOutChan)
-			case input.Type == "alive":
-				go aliveTicker(input, tickerChan)
+			case message.Type == "door":
+				Println("open door yo")
+				Println(closeDoor)
+				closeDoor++
+				Println(closeDoor)
+				go doorTimer(&closeDoor, message, timeOutChan)
+			case message.Type == "alive":
+				go aliveTicker(message, tickerChan)
 			}
 		}
 	}
 }
 
-func doorTimer(input Message, timeOutChan chan Message) {
+func doorTimer(closeDoor *int, message Message, timeOutChan chan Message) {
 	switch{
-	case input.Content == "Second":
-		Sleep(Duration(input.Value) * Second)
-	case input.Content == "Millisecond":
-		Sleep(Duration(input.Value) * Millisecond)
-	case input.Content == "MicroSecond":
-		Sleep(Duration(input.Value) * Microsecond)
+	case message.Content == "Second":
+		Sleep(Duration(message.Value) * Second)
+	case message.Content == "Millisecond":
+		Sleep(Duration(message.Value) * Millisecond)
+	case message.Content == "MicroSecond":
+		Sleep(Duration(message.Value) * Microsecond)
 	}
-	timeOutChan <- input
+	*closeDoor--
+	Println(*closeDoor)
+	if *closeDoor == 0 {
+	timeOutChan <- message
+	}
 }
 
-func aliveTicker(input Message, tickerChan chan Message) {
+func aliveTicker(message Message, tickerChan chan Message) {
 	tick := Tick(0 * Second)
 	switch{
-		case input.Content == "Second":
-			tick = Tick(Duration(input.Value) * Second)
-		case input.Content == "Millisecond":
-			tick = Tick(Duration(input.Value) * Millisecond)
-		case input.Content == "Microsecond":
-			tick = Tick(Duration(input.Value) * Microsecond)
+		case message.Content == "Second":
+			tick = Tick(Duration(message.Value) * Second)
+		case message.Content == "Millisecond":
+			tick = Tick(Duration(message.Value) * Millisecond)
+		case message.Content == "Microsecond":
+			tick = Tick(Duration(message.Value) * Microsecond)
 	}
 	for now := range tick {
-		tickerChan <- input
+		tickerChan <- message
 		_ = now
 	}
 }

@@ -9,7 +9,7 @@ import (
 const N_FLOORS = 4
 const N_BUTTONS = 3
 
-func DriverInit(driverInChan chan Message, driverOutChan chan Message) (bool) {
+func DriverInit(driverOutChan chan Message, driverInChan chan Message) (bool) {
 
 	floorSensors := []int{SENSOR_FLOOR1, SENSOR_FLOOR2, SENSOR_FLOOR3, SENSOR_FLOOR4}
 
@@ -45,13 +45,13 @@ func DriverInit(driverInChan chan Message, driverOutChan chan Message) (bool) {
 	if inFloor == 0 {
 		elevSetEngineSpeed("down")
 	}
-	go driverReader(driverInChan, floorSensors, buttonChannelMatrix)
-	go driverWriter(driverOutChan, floorSensors)
+	go driverReader(driverOutChan, floorSensors, buttonChannelMatrix)
+	go driverWriter(driverInChan, floorSensors)
 
 	return true
 }
 
-func driverReader(driverInChan chan Message, floorSensors[] int, buttonChannelMatrix[][] int) {
+func driverReader(driverOutChan chan Message, floorSensors[] int, buttonChannelMatrix[][] int) {
 	
 	buttonSignalLastCheckMatrix := [][]int{{0,0,0},{0,0,0},{0,0,0},{0,0,0}}
 	floorSignalLastCheck := []int{0,0,0,0}
@@ -74,7 +74,7 @@ func driverReader(driverInChan chan Message, floorSensors[] int, buttonChannelMa
 							message.Type = "outsideDown"
 						}
 						message.Floor = i + 1
-						driverInChan <- message
+						driverOutChan <- message
 						buttonSignalLastCheckMatrix[i][j] = 1
 
 					} else if buttonSignalLastCheckMatrix[i][j] == 1 {
@@ -86,7 +86,7 @@ func driverReader(driverInChan chan Message, floorSensors[] int, buttonChannelMa
 		if IOReadBit(STOP) != stopSignalLastCheck {
 			if stopSignalLastCheck == 0 {
 				message.Type = "stop"
-				driverInChan <- message
+				driverOutChan <- message
 				stopSignalLastCheck = 1
 			} else if stopSignalLastCheck == 1 {
 				stopSignalLastCheck = 0
@@ -95,7 +95,7 @@ func driverReader(driverInChan chan Message, floorSensors[] int, buttonChannelMa
 		if IOReadBit(OBSTRUCTION) != obstrSignalLastCheck {
 			if obstrSignalLastCheck == 0 {
 				message.Type = "obstr"
-				driverInChan <- message
+				driverOutChan <- message
 				obstrSignalLastCheck = 1
 			} else if obstrSignalLastCheck == 1 {
 				obstrSignalLastCheck = 0
@@ -107,7 +107,7 @@ func driverReader(driverInChan chan Message, floorSensors[] int, buttonChannelMa
 				if floorSignalLastCheck[i] == 0 {
 					message.Type = "floorReached"
 					message.Floor = i+1
-					driverInChan <- message
+					driverOutChan <- message
 					floorSignalLastCheck[i] = 1
 				} else if floorSignalLastCheck[i] == 1 {
 					floorSignalLastCheck[i] = 0
@@ -118,10 +118,10 @@ func driverReader(driverInChan chan Message, floorSensors[] int, buttonChannelMa
 	}
 }
 
-func driverWriter(driverOutChan chan Message, floorSensors[] int) {
+func driverWriter(driverInChan chan Message, floorSensors[] int) {
 	for {
 		select {
-		case message := <- driverOutChan:
+		case message := <- driverInChan:
 			switch {
 				case message.Type == "engine":
 					elevSetEngineSpeed(message.Content)		// 0 = stop, 1 = up, -1 = down
@@ -133,6 +133,7 @@ func driverWriter(driverOutChan chan Message, floorSensors[] int) {
 						}
 					}
 				case message.Type == "floorReached":
+					Println("DRIVER FLOORREACHED")
 					elevSetFloorIndicator(message.Floor)
 				case message.Content == "inside" || message.Content == "outsideUp" || message.Content == "outsideDown":
 					elevSetButtonLamp(message.Content, message.Floor, message.Value)
@@ -178,16 +179,17 @@ func elevSetDoorOpenLamp(value int) {
 }
 
 func elevSetFloorIndicator(floorNum int) {
+	Println("FLOOR INDICATOR")
 	switch {
 	case floorNum == 1:
 		IOClearBit(LIGHT_FLOOR_IND1)
 		IOClearBit(LIGHT_FLOOR_IND2)
 	case floorNum == 2:
-		IOSetBit(LIGHT_FLOOR_IND1)
-		IOClearBit(LIGHT_FLOOR_IND2)
-	case floorNum == 3:
 		IOClearBit(LIGHT_FLOOR_IND1)
 		IOSetBit(LIGHT_FLOOR_IND2)
+	case floorNum == 3:
+		IOSetBit(LIGHT_FLOOR_IND1)
+		IOClearBit(LIGHT_FLOOR_IND2)
 	case floorNum == 4:
 		IOSetBit(LIGHT_FLOOR_IND1)
 		IOSetBit(LIGHT_FLOOR_IND2)

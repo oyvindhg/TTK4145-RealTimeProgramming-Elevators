@@ -5,7 +5,7 @@ import (
 	."../network"
 )
 
-func Commander(networkSend chan Message, commanderChan chan Message, aliveChan chan Message, tickerChan chan Message, timerChan chan Message, timeOutChan chan Message, driverInChan chan Message, driverOutChan chan Message) {
+func Commander(networkSend chan Message, commanderChan chan Message, aliveChan chan Message, tickerChan chan Message, timerChan chan Message, timeOutChan chan Message, driverOutChan chan Message, driverInChan chan Message) {
 	
 	notAliveCount := 0
 	message := Message{}
@@ -26,11 +26,13 @@ func Commander(networkSend chan Message, commanderChan chan Message, aliveChan c
 							if i != destination {		
 								Println("Sending elevOffline message to elev", i)				
 								message.To = i
+								//Println(message)
 								networkSend <- message
 							}
 						}
 						message.Type = "broadcast"
 						message.To = 2
+						//Println(message)
 						networkSend <- message
 					}
 					notAliveCount++
@@ -39,60 +41,70 @@ func Commander(networkSend chan Message, commanderChan chan Message, aliveChan c
 				notAliveCount = 0
 				//Println("Alive")
 
-			case commanderMessage := <- commanderChan:
+			case message = <- commanderChan:
 				switch {
-				case commanderMessage.Type == "imAlive" || commanderMessage.Type == "newElev" || commanderMessage.Type == "newTarget" || commanderMessage.Type == "targetUpdate" || commanderMessage.Type == "addElev" || commanderMessage.Type == "deleteOrder":
-					networkSend <- commanderMessage
+				case message.Type == "imAlive" || message.Type == "newElev" || message.Type == "newTarget" || message.Type == "targetUpdate" || message.Type == "addElev" || message.Type == "deleteOrder":
+					networkSend <- message
 
-				case commanderMessage.Type == "signal":
-					driverOutChan <- commanderMessage
+				case message.Type == "signal":
+					driverInChan <- message
 
-				case commanderMessage.Type == "command":	
-					if commanderMessage.Content == "up" {
+				case message.Type == "command":	
+					if message.Content == "up" {
 						message.Type = "stateUpdate"
 						message.Content = "MovingUp"
+						//Println(message)
 						networkSend <- message
 						message.Content = "up"
-					} else if commanderMessage.Content == "down" {
+					} else if message.Content == "down" {
 						message.Type = "stateUpdate"
 						message.Content = "MovingDown"
+						//Println(message)
 						networkSend <- message
 						message.Content = "down"
-					} else if commanderMessage.Content == "stop" {
+					} else if message.Content == "stop" {
 						message.Type = "door"
 						message.Content = "Second"
 						message.Value = 3
 						timerChan <- message
 						message.Type = "stateUpdate"
 						message.Content = "Open"
+						//Println(message)
 						networkSend <- message
 						message.Content = "stop"
 					}
 					message.Type = "engine"
-					driverOutChan <- message
+					driverInChan <- message
 				}
 						
 			case message = <- timeOutChan:
 				message.Content = "door"
 				message.Value = 0
-				driverOutChan <- message
+				driverInChan <- message
 
 				message.Type = "stateUpdate"
 				message.Content = "Idle"
+				//Println(message)
 				networkSend <- message
 	
-			case driverInput := <- driverInChan:  //floorReached, inside, outsideUp, outsideDown, stop, obstr
-				driverInput.Content = driverInput.Type
-				driverInput.Floor = driverInput.Floor
-				switch {
-				case driverInput.Type == "inside" || driverInput.Type == "outsideUp" || driverInput.Type == "outsideDown":
-					driverInput.Content = driverInput.Type
-					driverInput.Type = "newOrder"
-				case driverInput.Type == "stop" || driverInput.Type == "obstr":
-					driverInput.Content = driverInput.Type
-					driverInput.Type = "stateUpdate"
+			case message = <- driverOutChan:  //floorReached, inside, outsideUp, outsideDown, stop, obstr
+				message.Content = message.Type
+				message.Floor = message.Floor
+
+				if message.Content == "floorReached" {
+					driverInChan <- message
 				}
-				networkSend <- driverInput
+
+				switch {
+				case message.Type == "inside" || message.Type == "outsideUp" || message.Type == "outsideDown":
+					message.Content = message.Type
+					message.Type = "newOrder"
+				case message.Type == "stop" || message.Type == "obstr":
+					message.Content = message.Type
+					message.Type = "stateUpdate"
+				}
+				//Println(message)
+				networkSend <- message
 		}
 	}
 }

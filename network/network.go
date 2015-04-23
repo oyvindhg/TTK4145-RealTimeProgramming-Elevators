@@ -9,8 +9,8 @@ import (
 
 const ELEV_COUNT = 3
 const FLOOR_COUNT = 4
-const MASTER_INIT_IP = "129.241.187.145"
-const PORT = ":20017"
+const MASTER_INIT_IP = "129.241.187.155"
+const PORT = ":20000"
 
 type Message struct {
 	Type string
@@ -21,7 +21,7 @@ type Message struct {
 	To int
 }
 
-func Network(networkReceive chan Message, networkSend chan Message, fileInChan chan Message, fileOutChan chan Message) {
+func Network(networkReceive chan Message, networkSend chan Message, fileOutChan chan Message, fileInChan chan Message) {
 
 	recievedChannel := make(chan Message)
 	go listen(recievedChannel)
@@ -52,8 +52,8 @@ func Network(networkReceive chan Message, networkSend chan Message, fileInChan c
 	for i := 1; i < ELEV_COUNT + 1; i++ {
 		message.Type = "readIP"
 		message.Value = i
-		fileOutChan <- message
-		message = <- fileInChan
+		fileInChan <- message
+		message = <- fileOutChan
 		if message.Content != "noIP" {
 			fileEmpty = false
 			IPlist = append(IPlist, message.Content)
@@ -75,7 +75,7 @@ func Network(networkReceive chan Message, networkSend chan Message, fileInChan c
 						IPlist = append(IPlist, message.Content)
 					}
 					message.Type = "writeIP"
-					fileOutChan <- message
+					fileInChan <- message
 					message.Type = "addElev"
 					message.To = len(IPlist) - 1
 					if len(IPlist) > 2 && IPlist[0] == IPlist[1] {

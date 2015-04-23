@@ -25,15 +25,15 @@ func main(){
 	driverInChan := make(chan Message)
 	driverOutChan := make(chan Message)
 
-	if !DriverInit(driverInChan, driverOutChan){
+	if !DriverInit(driverOutChan, driverInChan){
 		Println("Driver init failed!")
 		return
 	}
-	go FileManager(fileInChan, fileOutChan)
+	go FileManager(fileOutChan, fileInChan)
 	go Timekeeper(tickerChan, timerChan, timeOutChan)
-	go Network(networkReceive, networkSend, fileInChan, fileOutChan)
-	go LiftState(networkReceive, commanderChan, aliveChan, fileInChan, fileOutChan)
-	go Commander(networkSend, commanderChan, aliveChan, tickerChan, timerChan, timeOutChan, driverInChan, driverOutChan)
+	go Network(networkReceive, networkSend, fileOutChan, fileInChan)
+	go LiftState(networkReceive, commanderChan, aliveChan, fileOutChan, fileInChan)
+	go Commander(networkSend, commanderChan, aliveChan, tickerChan, timerChan, timeOutChan, driverOutChan, driverInChan)
 
 	select{
 		case <- mainWaitChan:
@@ -47,8 +47,14 @@ func main(){
 
 Heisen går noen ganger helt feil retning enn det den skal
 
-Dørlyset virker ikke
+Floor indicator virker ikke
 
+
+NB! Når ordre for en heis i 4. etasje bestilles opp fra 3. og så 2. til tom kø
+	vil den ikke kjøre ned til 2. etasje først, men fikse kun 3. etasje og går ut ifra
+	at de andre heisene fikser duden i 2. etasje
+
+NB! DoorTimer skriver og leser til en samme global variabel kanskje helt samtidig
 
 NB! Mulig deadlock i alive-broadcast init
 
