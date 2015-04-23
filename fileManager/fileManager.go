@@ -30,6 +30,7 @@ func FileManager(fileOutChan chan Message, fileInChan chan Message) {
 					}
 				case message.Type == "readInside":
 					inside := readInside()
+					//Println(inside)
 					if message.Floor < len(inside) {
 						message.Value = inside[message.Floor]
 						fileOutChan <- message

@@ -1,7 +1,7 @@
 package timer
 
 import (
-	."fmt"
+	//."fmt"
 	."time"
 	."../network"
 )
@@ -13,10 +13,7 @@ func Timekeeper(tickerChan chan Message, timerChan chan Message, timeOutChan cha
 		case message := <- timerChan:
 			switch {
 			case message.Type == "door":
-				Println("open door yo")
-				Println(closeDoor)
 				closeDoor++
-				Println(closeDoor)
 				go doorTimer(&closeDoor, message, timeOutChan)
 			case message.Type == "alive":
 				go aliveTicker(message, tickerChan)
@@ -35,9 +32,8 @@ func doorTimer(closeDoor *int, message Message, timeOutChan chan Message) {
 		Sleep(Duration(message.Value) * Microsecond)
 	}
 	*closeDoor--
-	Println(*closeDoor)
 	if *closeDoor == 0 {
-	timeOutChan <- message
+		timeOutChan <- message
 	}
 }
 

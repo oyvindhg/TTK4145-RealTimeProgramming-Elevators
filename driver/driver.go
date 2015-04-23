@@ -1,7 +1,7 @@
 package driver
 
 import (
-	."fmt"
+	//."fmt"
 	."time"
 	."../network"
 )
@@ -67,11 +67,11 @@ func driverReader(driverOutChan chan Message, floorSensors[] int, buttonChannelM
 					if buttonSignalLastCheckMatrix[i][j] == 0 {
 						switch {
 						case j == 2:
-							message.Type = "inside"
+							message.Content = "inside"
 						case j == 0:
-							message.Type = "outsideUp"
+							message.Content = "outsideUp"
 						case j == 1:
-							message.Type = "outsideDown"
+							message.Content = "outsideDown"
 						}
 						message.Floor = i + 1
 						driverOutChan <- message
@@ -85,7 +85,7 @@ func driverReader(driverOutChan chan Message, floorSensors[] int, buttonChannelM
 		}
 		if IOReadBit(STOP) != stopSignalLastCheck {
 			if stopSignalLastCheck == 0 {
-				message.Type = "stop"
+				message.Content = "stop"
 				driverOutChan <- message
 				stopSignalLastCheck = 1
 			} else if stopSignalLastCheck == 1 {
@@ -94,10 +94,12 @@ func driverReader(driverOutChan chan Message, floorSensors[] int, buttonChannelM
 		}
 		if IOReadBit(OBSTRUCTION) != obstrSignalLastCheck {
 			if obstrSignalLastCheck == 0 {
-				message.Type = "obstr"
+				message.Content = "obstrOn"
 				driverOutChan <- message
 				obstrSignalLastCheck = 1
 			} else if obstrSignalLastCheck == 1 {
+				message.Content = "obstrOff"
+				driverOutChan <- message
 				obstrSignalLastCheck = 0
 			}
 		}
@@ -105,12 +107,13 @@ func driverReader(driverOutChan chan Message, floorSensors[] int, buttonChannelM
 		for i := 0; i < N_FLOORS; i++ {
 			if IOReadBit(floorSensors[i]) != floorSignalLastCheck[i] {
 				if floorSignalLastCheck[i] == 0 {
-					message.Type = "floorReached"
+					message.Content = "floorReached"
 					message.Floor = i+1
 					driverOutChan <- message
 					floorSignalLastCheck[i] = 1
 				} else if floorSignalLastCheck[i] == 1 {
 					floorSignalLastCheck[i] = 0
+					elevSetDoorOpenLamp(0)
 				}
 			}
 		}
@@ -133,14 +136,12 @@ func driverWriter(driverInChan chan Message, floorSensors[] int) {
 						}
 					}
 				case message.Type == "floorReached":
-					Println("DRIVER FLOORREACHED")
 					elevSetFloorIndicator(message.Floor)
 				case message.Content == "inside" || message.Content == "outsideUp" || message.Content == "outsideDown":
 					elevSetButtonLamp(message.Content, message.Floor, message.Value)
 				case message.Content == "stop":
 					elevSetStopLamp(message.Value)
 				case message.Content == "door":
-					Println(message)
 					elevSetDoorOpenLamp(message.Value)
 			}
 		}
@@ -179,7 +180,6 @@ func elevSetDoorOpenLamp(value int) {
 }
 
 func elevSetFloorIndicator(floorNum int) {
-	Println("FLOOR INDICATOR")
 	switch {
 	case floorNum == 1:
 		IOClearBit(LIGHT_FLOOR_IND1)

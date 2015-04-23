@@ -46,6 +46,9 @@ func Commander(networkSend chan Message, commanderChan chan Message, aliveChan c
 				case message.Type == "imAlive" || message.Type == "newElev" || message.Type == "newTarget" || message.Type == "targetUpdate" || message.Type == "addElev" || message.Type == "deleteOrder":
 					networkSend <- message
 
+				case message.Type == "newOrder":
+					driverOutChan <- message
+
 				case message.Type == "signal":
 					driverInChan <- message
 
@@ -88,19 +91,15 @@ func Commander(networkSend chan Message, commanderChan chan Message, aliveChan c
 				networkSend <- message
 	
 			case message = <- driverOutChan:  //floorReached, inside, outsideUp, outsideDown, stop, obstr
-				message.Content = message.Type
-				message.Floor = message.Floor
-
 				if message.Content == "floorReached" {
+					message.Type = message.Content
 					driverInChan <- message
 				}
 
 				switch {
-				case message.Type == "inside" || message.Type == "outsideUp" || message.Type == "outsideDown":
-					message.Content = message.Type
+				case message.Content == "inside" || message.Content == "outsideUp" || message.Content == "outsideDown":
 					message.Type = "newOrder"
-				case message.Type == "stop" || message.Type == "obstr":
-					message.Content = message.Type
+				case message.Content == "stop" || message.Content == "obstrOn" || message.Content == "obstrOff":
 					message.Type = "stateUpdate"
 				}
 				//Println(message)

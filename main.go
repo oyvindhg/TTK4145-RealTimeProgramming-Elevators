@@ -12,18 +12,18 @@ import(
 
 func main(){
 
-	fileInChan := make(chan Message)
-	fileOutChan := make(chan Message)
-	mainWaitChan := make(chan Message)
-	networkSend := make(chan Message)
-	networkReceive := make(chan Message)
-	commanderChan := make(chan Message)
-	aliveChan := make(chan Message)
-	timerChan := make(chan Message)
-	tickerChan := make(chan Message)
-	timeOutChan := make(chan Message)
-	driverInChan := make(chan Message)
-	driverOutChan := make(chan Message)
+	fileInChan := make(chan Message, 0)
+	fileOutChan := make(chan Message, 0)
+	mainWaitChan := make(chan Message,0)
+	networkSend := make(chan Message, 10)
+	networkReceive := make(chan Message, 10)
+	commanderChan := make(chan Message, 10)
+	aliveChan := make(chan Message, 0)
+	timerChan := make(chan Message, 0)
+	tickerChan := make(chan Message, 0)
+	timeOutChan := make(chan Message, 0)
+	driverInChan := make(chan Message, 10)
+	driverOutChan := make(chan Message, 10)
 
 	if !DriverInit(driverOutChan, driverInChan){
 		Println("Driver init failed!")
@@ -48,6 +48,10 @@ func main(){
 Heisen går noen ganger helt feil retning enn det den skal
 
 Floor indicator virker ikke
+
+Heis på vei bort fra etasje - trykker etasjen den var i -> stopper
+
+Heis husker ikke inside orders, iallefall ikke riktig
 
 
 NB! Når ordre for en heis i 4. etasje bestilles opp fra 3. og så 2. til tom kø
