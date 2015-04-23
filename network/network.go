@@ -115,7 +115,11 @@ func Network(networkReceive chan Message, networkSend chan Message, fileInChan c
 						message.To = 0
 					}
 				case message.Type == "newOrder":
-					message.To = 0
+					if message.Content == "inside" {
+						message.To = -2
+					} else {
+						message.To = 0
+					}
 				case message.Type == "deleteOrder":
 					message.To = 0
 				case message.Type == "stateUpdate":

@@ -45,221 +45,171 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 	
 	for{
 		select{
-			case message = <- networkReceive:
+		case message = <- networkReceive:
+			switch{
+			case message.Type == "master":
+				go aliveBroadcast(commanderChan)
+
+			case message.Type == "imAlive":
+				aliveChan <- message
+
+			case message.Type == "command":
+				commanderChan <- message
+
+			case message.Type == "newElev" || message.Type == "addElev":
+				elev = append(elev, elevator{0, 0, "Idle"})
+
+			case message.Type == "elevOffline":
+				elev = append(elev[:message.Value], elev[message.Value+1:]...)
+
+			case message.Type == "newOrder":
 				switch{
-				case message.Type == "master":
-					go aliveBroadcast(commanderChan)
-
-				case message.Type == "imAlive":
-					aliveChan <- message
-
-				case message.Type == "command":
-					commanderChan <- message
-
-				case message.Type == "newElev" || message.Type == "addElev":
-					elev = append(elev, elevator{0, 0, "Idle"})
-
-				case message.Type == "elevOffline":
-					elev = append(elev[:message.Value], elev[message.Value+1:]...)
-
-				case message.Type == "newOrder":
-					switch{
-					case message.Content == "inside":
-						inside[message.Floor] = 1
-						
-					case message.Content == "outsideUp":
-						outUp[message.Floor] = 1
-					case message.Content == "outsideDown":
-						outDown[message.Floor] = 1
-					}
-						
-					if message.Content == "inside" && message.From != message.To {							//Vil dette egentlig skje?
-						break
-					}
-					message.Type = "signal"
+				case message.Content == "inside":
+					inside[message.Floor] = 1
+					message.Type = "writeInside"
 					message.Value = 1
-					commanderChan <- message
+					fileOutChan <- message
+				case message.Content == "outsideUp":
+					outUp[message.Floor] = 1
+				case message.Content == "outsideDown":
+					outDown[message.Floor] = 1
+				}
+				message.Type = "signal"
+				message.Value = 1
+				commanderChan <- message
 
-					if message.To == 1 {								//KOSTFUNKSJON
-						bestValue := FLOOR_COUNT
-						bestElev := 0
-						for i := 1; i < len(elev); i++ {
-							if message.Floor == FLOOR_COUNT && elev[i].floorNum == FLOOR_COUNT-1 && elev[i].state == "MovingUp"{
-								break
-							} else if message.Floor == 1 && elev[i].floorNum == 2 && elev[i].state == "MovingDown"{
-								break
-							} else if message.Floor - elev[i].floorNum == 1 && elev[i].state == "MovingUp"{
-								break
-							} else if message.Floor - elev[i].floorNum == -1 && elev[i].state == "MovingDown"{
-								break
-							}
-							if elev[i].state == "Idle"{
-								if message.Floor - elev[i].floorNum > 0 && message.Floor - elev[i].floorNum < bestValue{
-									bestValue = message.Floor - elev[i].floorNum
-									bestElev = i
-								} else if elev[i].floorNum - message.Floor > 0 && elev[i].floorNum - message.Floor < bestValue{
-									bestValue = elev[i].floorNum - message.Floor
-									bestElev = i
-								}
+				if message.To == 1 {
+					bestValue := FLOOR_COUNT
+					bestElev := 0
+					for i := 1; i < len(elev); i++ {
+						if message.Floor == FLOOR_COUNT && elev[i].floorNum == FLOOR_COUNT-1 && elev[i].state == "MovingUp"{
+							bestElev = 0
+							break
+						} else if message.Floor == 1 && elev[i].floorNum == 2 && elev[i].state == "MovingDown"{
+							bestElev = 0
+							break
+						} else if message.Floor - elev[i].floorNum == 1 && elev[i].state == "MovingUp"{
+							bestElev = 0
+							break
+						} else if message.Floor - elev[i].floorNum == -1 && elev[i].state == "MovingDown"{
+							bestElev = 0
+							break
+						}
+						if elev[i].state == "Idle"{
+							if message.Floor - elev[i].floorNum > 0 && message.Floor - elev[i].floorNum < bestValue{
+								bestValue = message.Floor - elev[i].floorNum
+								bestElev = i
+							} else if elev[i].floorNum - message.Floor > 0 && elev[i].floorNum - message.Floor < bestValue{
+								bestValue = elev[i].floorNum - message.Floor
+								bestElev = i
 							}
 						}
+					}
+					if bestElev != 0 {
 						message.To = bestElev
 						message.Type = "newTarget"
 						commanderChan <- message
 					}
+				}
 
-				case message.Type == "deleteOrder":
-					switch{
-					case message.Content == "inside":
-						inside[message.Floor] = 0
-					case message.Content == "outsideUp":
-						outUp[message.Floor] = 0
-					case message.Content == "outsideDown":
-						outDown[message.Floor] = 0
-					}
-					
-					if message.Content == "inside" && message.From != message.To {
-						break
-					}
-					message.Type = "signal"
+			case message.Type == "deleteOrder":
+				switch{
+				case message.Content == "inside":
+					inside[message.Floor] = 0
+					message.Type = "writeInside"
 					message.Value = 0
+					fileOutChan <- message
+				case message.Content == "outsideUp":
+					outUp[message.Floor] = 0
+				case message.Content == "outsideDown":
+					outDown[message.Floor] = 0
+				}
+				
+				if message.Content == "inside" && message.From != message.To {
+					break
+				}
+				message.Type = "signal"
+				message.Value = 0
+				commanderChan <- message
+
+			case message.Type == "newFloor":
+				elev[message.From].floorNum = message.Floor
+
+			case message.Type == "floorReached":
+				elev[message.From].floorNum = message.Floor
+				if inside[message.Floor] == 1 || outUp[message.Floor] == 1 && elev[message.From].state == "MovingUp" || outDown[message.Floor] == 1 && elev[message.From].state == "MovingDown"{
+					message.Type = "command"
+					message.Content = "stop"
 					commanderChan <- message
-
-				case message.Type == "newFloor":
-					elev[message.From].floorNum = message.Floor
-
-				case message.Type == "floorReached":
-					elev[message.From].floorNum = message.Floor
-					if inside[message.Floor] == 1 || outUp[message.Floor] == 1 && elev[message.From].state == "MovingUp" || outDown[message.Floor] == 1 && elev[message.From].state == "MovingDown"{
-						message.Type = "command"
-						message.Content = "stop"
-						commanderChan <- message
-						message.Type = "deleteOrder"
-						if inside[message.Floor] == 1 {
-							message.Content = "inside"
-							commanderChan <- message
-						}
-						if outUp[message.Floor] == 1 {
-							message.Content = "outsideUp"
-							commanderChan <- message
-						}
-						if outDown[message.Floor] == 1 {
-							message.Content = "outsideDown"
-							commanderChan <- message
-						}
-						if elev[message.From].floorTarget == message.Floor {
-							elev[message.From].floorTarget = 0
-						}
-						break
-					}
-					emptyQueue := true
-					for i := 1; i < FLOOR_COUNT + 1; i++ {
-						if inside[i] == 1 || outDown[i] == 1 || outUp[i] == 1 {
-							emptyQueue = false
-						}
-					}
-					if emptyQueue == true {
-						message.Type = "command"
-						message.Content = "stop"
+					message.Type = "deleteOrder"
+					if inside[message.Floor] == 1 {
+						message.Content = "inside"
 						commanderChan <- message
 					}
-
-				case message.Type == "newTarget":
-					elev[message.To].floorTarget = message.Floor
-					message.Type = "targetUpdate"						//Hvor er denne typen i Driver?
-					commanderChan <- message
-					if elev[message.To].state == "Idle" {
-						message.Type = "command"
-						if message.Floor > elev[message.To].floorNum {
-							message.Content = "up"
-						} else if message.Floor < elev[message.To].floorNum {
-							message.Content = "down"
-						}
+					if outUp[message.Floor] == 1 {
+						message.Content = "outsideUp"
 						commanderChan <- message
 					}
-
-				case message.Type == "targetUpdate":
-					elev[message.From].floorTarget = message.Floor
-
-				case message.Type == "stateUpdate":
-					elev[message.From].state = message.Content
-
-					// DETTE ER NYTT
-
-					if elev[message.From].state == "Idle"{
-						if message.To == 1 {
-							bestFloor := 0
-							i := 0			// hvis heisa som er Idle har floorNum under eller lik FLOOR_COUNT
-							for{
-								if elev[message.From].floorNum + i < FLOOR_COUNT + 1{
-
-									// hvis ordre er bestilt på utsiden i floorNum + i etasjen
-
-									// HVOR er inside orders?
-
-									if outDown[elev[message.From].floorNum + i] == 1 ||  outUp[elev[message.From].floorNum + i] == 1 {
-
-										// send melding tilbake til heisa om newTarget til nåværende floor
-
-										// HVORFOR bestFloor, den blir ikke brukt til annet enn å mellomlagre floorNum + i og sende det videre
-
-										bestFloor = elev[message.From].floorNum + i
-										message.To = message.From
-										message.Type = "newTarget"
-										message.Floor = bestFloor
-										commanderChan <- message
-										break
-									}
-
-									// hvis heisa som er Idle ikke har ordre i eller over nåværende floorNum + teller, men under
-
-								} else if elev[message.From].floorNum - i > 0{
-									if outDown[elev[message.From].floorNum - i] == 1 ||  outUp[elev[message.From].floorNum - i] == 1 {
-										bestFloor = elev[message.From].floorNum - i
-										message.To = message.From
-										message.Type = "newTarget"
-										message.Floor = bestFloor
-										commanderChan <- message
-										break
-									}
-								} else{
-									break		// her vil for-løkka breake allerede hvis det ikke finnes en ordre i floorNum + 0, no work man
-								}
-								i ++			// i++ vil aldri bli inkrementert pga break statement i alle mulige alternativ foran (if, else if, else)
-							}
-						}						// HVORFOR ikke en vanlig for-løkke med i := 0; i < FLOOR_COUNT + 1; i++ ?
-
-						if message.To == 1 {
-							for i := 0; i + elev[message.From] < FLOOR_COUNT + 1; i++ {
-								if outDown[elev[message.From].floorNum + i] == 1 ||  outUp[elev[message.From].floorNum + i] == 1 || inside[elev[message.From].floorNum + i] == 1 {
-									message.To = message.From
-									messate.Type = "newTarget"
-									message.Floor = elev[message.From].floorNum + i
-									commanderChan <- message
-									break
-								} else if outDown[elev[message.From].floorNum - i] == 1 ||  outUp[elev[message.From].floorNum - i] == 1 || inside[elev[message.From].floorNum - i] == 1 {
-									message.To = message.From
-									messate.Type = "newTarget"
-									message.Floor = elev[message.From].floorNum - i
-									commanderChan <- message
-									break
-								}
-							}
-						}
+					if outDown[message.Floor] == 1 {
+						message.Content = "outsideDown"
+						commanderChan <- message
 					}
-
-					// HER SLUTTER DET NYE
-
-					if elev[message.To].state == "Idle" {
-						message.Type = "command"
-						if message.Floor > elev[message.To].floorNum {		//wtf.. message.Floor er vel ikke bestemt i stateUpdate? Er det ikke her master skal sjekke om heisen skal få en ny oppgave?
-							message.Content = "up"
-						} else if message.Floor < elev[message.To].floorNum {
-							message.Content = "down"
-						}
-						commanderChan <- message  		// WHY IS THIS IN STATEUPDATE, DELETE IT    (den ligger i newTarget også)
+					if elev[message.From].floorTarget == message.Floor {
+						elev[message.From].floorTarget = 0
+					}
+					break
+				}
+				emptyQueue := true
+				for i := 1; i < FLOOR_COUNT + 1; i++ {
+					if inside[i] == 1 || outDown[i] == 1 || outUp[i] == 1 {
+						emptyQueue = false
 					}
 				}
+				if emptyQueue == true {
+					message.Type = "command"
+					message.Content = "stop"
+					commanderChan <- message
+				}
+
+			case message.Type == "newTarget":
+				message.Type = "targetUpdate"
+				commanderChan <- message
+				if elev[message.To].state == "Idle" {
+					message.Type = "command"
+					if message.Floor > elev[message.To].floorNum {
+						message.Content = "up"
+					} else if message.Floor < elev[message.To].floorNum {
+						message.Content = "down"
+					}
+					commanderChan <- message
+				}
+
+			case message.Type == "targetUpdate":
+				elev[message.From].floorTarget = message.Floor
+
+			case message.Type == "stateUpdate":
+				elev[message.From].state = message.Content
+
+				if elev[message.From].state == "Idle"{
+					if message.To == 1 {
+						for i := 1; i < FLOOR_COUNT + 1; i++ {
+							if elev[message.From].floorNum + i < FLOOR_COUNT + 1 && outDown[elev[message.From].floorNum + i] == 1 ||  outUp[elev[message.From].floorNum + i] == 1 || inside[elev[message.From].floorNum + i] == 1 {
+								message.To = message.From
+								messate.Type = "newTarget"
+								message.Floor = elev[message.From].floorNum + i
+								commanderChan <- message
+								break
+							} else if elev[message.From].floorNum - i > 0 && outDown[elev[message.From].floorNum - i] == 1 ||  outUp[elev[message.From].floorNum - i] == 1 || inside[elev[message.From].floorNum - i] == 1 {
+								message.To = message.From
+								messate.Type = "newTarget"
+								message.Floor = elev[message.From].floorNum - i
+								commanderChan <- message
+								break
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 }
