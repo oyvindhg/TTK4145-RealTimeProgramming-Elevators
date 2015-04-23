@@ -187,12 +187,22 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 					// DETTE ER NYTT
 
 					if elev[message.From].state == "Idle"{
-						if message.To == 1 {						// KOSTFUNKSJON
+						if message.To == 1 {
 							bestFloor := 0
-							i := 0
+							i := 0			// hvis heisa som er Idle har floorNum under eller lik FLOOR_COUNT
 							for{
-								if elev[message.From].floorNum + i <= FLOOR_COUNT + 1{
+								if elev[message.From].floorNum + i < FLOOR_COUNT + 1{
+
+									// hvis ordre er bestilt på utsiden i floorNum + i etasjen
+
+									// HVOR er inside orders?
+
 									if outDown[elev[message.From].floorNum + i] == 1 ||  outUp[elev[message.From].floorNum + i] == 1 {
+
+										// send melding tilbake til heisa om newTarget til nåværende floor
+
+										// HVORFOR bestFloor, den blir ikke brukt til annet enn å mellomlagre floorNum + i og sende det videre
+
 										bestFloor = elev[message.From].floorNum + i
 										message.To = message.From
 										message.Type = "newTarget"
@@ -200,6 +210,9 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 										commanderChan <- message
 										break
 									}
+
+									// hvis heisa som er Idle ikke har ordre i eller over nåværende floorNum + teller, men under
+
 								} else if elev[message.From].floorNum - i > 0{
 									if outDown[elev[message.From].floorNum - i] == 1 ||  outUp[elev[message.From].floorNum - i] == 1 {
 										bestFloor = elev[message.From].floorNum - i
@@ -210,9 +223,27 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 										break
 									}
 								} else{
+									break		// her vil for-løkka breake allerede hvis det ikke finnes en ordre i floorNum + 0, no work man
+								}
+								i ++			// i++ vil aldri bli inkrementert pga break statement i alle mulige alternativ foran (if, else if, else)
+							}
+						}						// HVORFOR ikke en vanlig for-løkke med i := 0; i < FLOOR_COUNT + 1; i++ ?
+
+						if message.To == 1 {
+							for i := 0; i + elev[message.From] < FLOOR_COUNT + 1; i++ {
+								if outDown[elev[message.From].floorNum + i] == 1 ||  outUp[elev[message.From].floorNum + i] == 1 || inside[elev[message.From].floorNum + i] == 1 {
+									message.To = message.From
+									messate.Type = "newTarget"
+									message.Floor = elev[message.From].floorNum + i
+									commanderChan <- message
+									break
+								} else if outDown[elev[message.From].floorNum - i] == 1 ||  outUp[elev[message.From].floorNum - i] == 1 || inside[elev[message.From].floorNum - i] == 1 {
+									message.To = message.From
+									messate.Type = "newTarget"
+									message.Floor = elev[message.From].floorNum - i
+									commanderChan <- message
 									break
 								}
-								i ++
 							}
 						}
 					}
@@ -226,7 +257,7 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 						} else if message.Floor < elev[message.To].floorNum {
 							message.Content = "down"
 						}
-						commanderChan <- message
+						commanderChan <- message  		// WHY IS THIS IN STATEUPDATE, DELETE IT    (den ligger i newTarget også)
 					}
 				}
 		}
