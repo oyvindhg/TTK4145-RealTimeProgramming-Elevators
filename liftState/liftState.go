@@ -4,7 +4,6 @@ import (
 	."fmt"
 	."time"
 	."../network"
-	//."../fileManager"
 )
 
 type elevator struct {
@@ -13,16 +12,7 @@ type elevator struct {
 	state string
 }
 
-func aliveBroadcast(commanderChan chan Message) {
-	message := Message{}
-	message.Type = "imAlive"
-	for {	
-		Sleep(100 * Millisecond)
-		commanderChan <- message
-	}
-}
-
-func LiftState(networkReceive chan Message, commanderChan chan Message, aliveChan chan Message, fileOutChan chan Message, fileInChan chan Message) {
+func LiftStateInit(networkReceive chan Message, commanderChan chan Message, aliveChan chan Message, fileOutChan chan Message, fileInChan chan Message) {
 
 	message := Message{}
 	elev := make([]elevator, 1, ELEV_COUNT + 1)
@@ -47,20 +37,21 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 			}
 		}
 	}
-	for{
-		select{
+
+	go liftState(networkReceive, commanderChan, aliveChan)
+}
+
+func liftState(networkReceive chan Message, commanderChan chan Message, aliveChan chan Message) {
+	for {
+		select {
 		case message = <- networkReceive:
-			switch{
-			case message.Type == "master":
+			switch {
+			case message.Type == "command" || message.Type == "master":
 				Println(message)
-				go aliveBroadcast(commanderChan)
+				commanderChan <- message
 
 			case message.Type == "imAlive":
 				aliveChan <- message
-
-			case message.Type == "command":
-				Println(message)
-				commanderChan <- message
 
 			case message.Type == "newElev" || message.Type == "addElev":
 				Println(message)
@@ -137,7 +128,7 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 				message.Value = 0
 				commanderChan <- message
 
-			case message.Type == "newFloor":
+			case message.Type == "floorUpdate":
 				Println(message)
 				elev[message.From].floorNum = message.Floor
 

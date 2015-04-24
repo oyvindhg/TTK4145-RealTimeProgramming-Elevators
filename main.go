@@ -31,9 +31,9 @@ func main(){
 	}
 	go FileManager(fileOutChan, fileInChan)
 	go Timekeeper(tickerChan, timerChan, timeOutChan)
-	go Network(networkReceive, networkSend, fileOutChan, fileInChan)
-	go LiftState(networkReceive, commanderChan, aliveChan, fileOutChan, fileInChan)
-	go Commander(networkSend, commanderChan, aliveChan, tickerChan, timerChan, timeOutChan, driverOutChan, driverInChan)
+	go NetworkInit(networkReceive, networkSend, fileOutChan, fileInChan)
+	go LiftStateInit(networkReceive, commanderChan, aliveChan, fileOutChan, fileInChan)
+	go CommanderInit(networkSend, commanderChan, aliveChan, tickerChan, timerChan, timeOutChan, driverOutChan, driverInChan)
 
 	select{
 		case <- mainWaitChan:
@@ -47,11 +47,12 @@ func main(){
 
 Heisen går noen ganger helt feil retning enn det den skal
 
-Floor indicator virker ikke
-
 Heis på vei bort fra etasje - trykker etasjen den var i -> stopper
 
-Heis husker ikke inside orders, iallefall ikke riktig
+
+AMMAGAAAD FIX FLOORUPDATE IN FLOORREACHED GEEZUS
+
+HUSK Å LEGGE INN POINTER OG REFERENCE I NETWORKRECEIVER TIL IPLIST SLICE
 
 
 NB! Når ordre for en heis i 4. etasje bestilles opp fra 3. og så 2. til tom kø

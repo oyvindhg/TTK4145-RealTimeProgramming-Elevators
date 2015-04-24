@@ -21,10 +21,10 @@ type Message struct {
 	To int
 }
 
-func Network(networkReceive chan Message, networkSend chan Message, fileOutChan chan Message, fileInChan chan Message) {
+func NetworkInit(networkReceive chan Message, networkSend chan Message, fileOutChan chan Message, fileInChan chan Message) {
 
-	recievedChannel := make(chan Message)
-	go listen(recievedChannel)
+	receivedChannel := make(chan Message)
+	go listen(receivedChannel)
 
 	message := Message{}
 	fileEmpty := true
@@ -45,7 +45,7 @@ func Network(networkReceive chan Message, networkSend chan Message, fileOutChan 
 
 	if IPlist[0] == MASTER_INIT_IP {
 		message.Type = "master"
-		go startBroadcast(message, -1, IPlist, networkSend)
+		go startAliveBroadcast(message, -1, IPlist, networkSend)
 		//go send(message, IPlist, networkSend)
 	}
 
@@ -60,89 +60,99 @@ func Network(networkReceive chan Message, networkSend chan Message, fileOutChan 
 		}
 	}
 
+	go networkReceiver(networkReceive, receivedChannel, networkSend, IPlist)
+	go networkSender(networkSend, IPlist)
+}
+
+func networkReceiver(networkReceive chan Message, receivedChannel chan Message, networkSend chan Message, IPlist []string) {
 	for{
 		select{
-			case message = <- recievedChannel:
-				switch{
-				case message.Type == "newElev":
-					appendable := true
-					for i := 0; i < len(IPlist); i++ {
-						if IPlist[i] == message.Content {
-							appendable = false
-						}
+		case message := <- receivedChannel:
+			switch{
+			case message.Type == "newElev":
+				appendable := true
+				for i := 0; i < len(IPlist); i++ {
+					if IPlist[i] == message.Content {
+						appendable = false
 					}
-					if appendable {
-						IPlist = append(IPlist, message.Content)
-					}
-					message.Type = "writeIP"
-					fileInChan <- message
-					message.Type = "addElev"
-					message.To = len(IPlist) - 1
-					if len(IPlist) > 2 && IPlist[0] == IPlist[1] {
-						for i := 1; i < len(IPlist); i++ {
-							message.Content = IPlist[i]
-							networkSend <- message
-						}
-					}
-				case message.Type == "addElev":
-					appendable := true
-					for i := 1; i < len(IPlist); i++ {
-						if IPlist[i] == message.Content {
-							appendable = false
-						}
-					}
-					if appendable {
-						IPlist = append(IPlist, message.Content)
-					}
-				case message.Type == "elevOffline":
-					IPlist = append(IPlist[:message.Value], IPlist[message.Value+1:]...)
 				}
-				networkReceive <- message
-
-			case message = <- networkSend:
+				if appendable {
+					IPlist = append(IPlist, message.Content)
+				}
+				message.Type = "writeIP"
+				fileInChan <- message
+				message.Type = "addElev"
+				message.To = len(IPlist) - 1
+				if len(IPlist) > 2 && IPlist[0] == IPlist[1] {
+					for i := 1; i < len(IPlist); i++ {
+						message.Content = IPlist[i]
+						networkSend <- message
+					}
+				}
+			case message.Type == "addElev":
+				appendable := true
 				for i := 1; i < len(IPlist); i++ {
-					if IPlist[0] == IPlist[i] {
-						message.From = i
-						break
+					if IPlist[i] == message.Content {
+						appendable = false
 					}
 				}
-				switch{							//0 = all, -1 = MASTER_INIT_IP, -2 = localhost
-				case message.Type == "newElev":
-					message.Content = IPlist[0]
-					if fileEmpty {
-						message.To = -1
-					} else {
-						message.To = 0
-					}
-				case message.Type == "newOrder":
-					if message.Content == "inside" {
-						message.To = -2
-					} else {
-						message.To = 0
-					}
-				case message.Type == "deleteOrder":
-					message.To = 0
-				case message.Type == "stateUpdate":
-					message.To = 0
-				case message.Type == "targetUpdate":
-					message.To = 0
-				case message.Type == "floorReached":
-					message.To = -2
+				if appendable {
+					IPlist = append(IPlist, message.Content)
 				}
-				if message.To == 0 {
-					for i := 1; i < len(IPlist); i++ {
-						message.To = i
-						go send(message, IPlist, networkSend)
-					}
-				} else {
-					go send(message, IPlist, networkSend)
-				}
-				
+			case message.Type == "elevOffline":
+				IPlist = append(IPlist[:message.Value], IPlist[message.Value+1:]...)
+			}
+			networkReceive <- message
 		}
 	}
 }
 
-func listen(recievedChannel chan Message) {
+func networkSender(networkSend chan Message, IPlist []string) {
+	for {
+		select {
+		case message := <- networkSend:
+			for i := 1; i < len(IPlist); i++ {
+				if IPlist[0] == IPlist[i] {
+					message.From = i
+					break
+				}
+			}
+			switch{								//0 = all, -1 = MASTER_INIT_IP, -2 = localhost
+			case message.Type == "newElev":
+				message.Content = IPlist[0]
+				if fileEmpty {
+					message.To = -1
+				} else {
+					message.To = 0
+				}
+			case message.Type == "newOrder":
+				if message.Content == "inside" {
+					message.To = -2
+				} else {
+					message.To = 0
+				}
+			case message.Type == "deleteOrder":
+				message.To = 0
+			case message.Type == "stateUpdate":
+				message.To = 0
+			case message.Type == "targetUpdate":
+				message.To = 0
+			case message.Type == "floorReached":
+				message.To = -2
+			}
+			if message.To == 0 {
+				for i := 1; i < len(IPlist); i++ {
+					message.To = i
+					go send(message, IPlist, networkSend)
+				}
+			} else {
+				go send(message, IPlist, networkSend)
+			}
+		}
+	}
+}
+
+func listen(receivedChannel chan Message) {
 	listener, error := net.Listen("tcp", PORT)
 	if error != nil {
 		Println("Listen error: ", error)
@@ -153,7 +163,7 @@ func listen(recievedChannel chan Message) {
 		if error != nil {
 			Println("Listen connection error: ", err)
 		}
-		go receive(connection, recievedChannel)
+		go receive(connection, receivedChannel)
 	}
 }
 
@@ -201,7 +211,7 @@ func send(message Message, IPlist[] string, networkSend chan Message) {
 	connection.Write(byteMessage)
 }
 
-func receive(connection net.Conn, recievedChannel chan Message) {
+func receive(connection net.Conn, receivedChannel chan Message) {
 	defer connection.Close()
 	buffer := make([]byte, 1024)
 	message := Message{}
@@ -214,10 +224,10 @@ func receive(connection net.Conn, recievedChannel chan Message) {
 	if err != nil {
 		Println("Receive error: ", err)
 	}
-	recievedChannel <- message
+	receivedChannel <- message
 }
 
-func startBroadcast(message Message, i int, IPlist[] string, networkSend chan Message) {
+func startAliveBroadcast(message Message, i int, IPlist[] string, networkSend chan Message) {
 	Sleep(400 * Millisecond)
 	go send(message, IPlist, networkSend)
 }
