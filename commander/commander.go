@@ -141,7 +141,3 @@ func masterAliveBroadcast(networkSend chan Message) {
 		networkSend <- message
 	}
 }
-
-func (networkSend chan Message) {
-
-}

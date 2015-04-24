@@ -51,6 +51,8 @@ Fiks un-constant MASTER_INIT_IP som endres i network om ikke master ip tilgjenge
 
 Fjern buffere
 
+Legg til sjekk etter 1 sekund i commander
+
 Legg inn en count for antall prøvd å sende eller forskjellige stages
 
 Mangler en funksjonalitet for newOrder kostfunksjon for moving states
