@@ -32,7 +32,7 @@ func main(){
 	go FileManager(fileOutChan, fileInChan)
 	go Timekeeper(tickerChan, timerChan, timeOutChan)
 	go NetworkInit(networkReceive, networkSend, fileOutChan, fileInChan)
-	go LiftStateInit(networkReceive, commanderChan, aliveChan, fileOutChan, fileInChan)
+	go LiftState(networkReceive, commanderChan, aliveChan, fileOutChan, fileInChan)
 	go CommanderInit(networkSend, commanderChan, aliveChan, tickerChan, timerChan, timeOutChan, driverOutChan, driverInChan)
 
 	select{
@@ -47,7 +47,19 @@ func main(){
 
 Heisen går noen ganger helt feil retning enn det den skal
 
-Heis på vei bort fra etasje - trykker etasjen den var i -> stopper
+Fiks un-constant MASTER_INIT_IP som endres i network om ikke master ip tilgjengelig
+
+Fjern buffere
+
+Legg inn en count for antall prøvd å sende eller forskjellige stages
+
+Mangler en funksjonalitet for newOrder kostfunksjon for moving states
+
+						MÅ ORDNES			Folk kan fucke med en stakkar i 4. etasje pga inside orders prioritet
+
+Kanskje legge til en teller? BRUTE FORCE
+
+Under utregning kan states og retning og floorNum få prioritetutdeling
 
 
 AMMAGAAAD FIX FLOORUPDATE IN FLOORREACHED GEEZUS

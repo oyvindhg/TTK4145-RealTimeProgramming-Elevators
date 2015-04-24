@@ -2,19 +2,14 @@ package commander
 
 import (
 	."fmt"
+	."time"
 	."../network"
 )
 
 func CommanderInit(networkSend chan Message, commanderChan chan Message, aliveChan chan Message, tickerChan chan Message, timerChan chan Message, timeOutChan chan Message, driverOutChan chan Message, driverInChan chan Message) {
 	
-	notAliveCount := 0
-	message.Type = "alive"
-	message.Content = "Millisecond"
-	message.Value = 150
-	timerChan <- message
-
 	go commander(commanderChan, networkSend, driverOutChan, driverInChan, timerChan)
-	go masterAliveHandler(tickerChan, aliveChan, networkSend, notAliveCount)
+	go masterAliveHandler(tickerChan, timerChan, aliveChan, networkSend)
 	go masterAliveBroadcast(commanderChan )
 	go doorTimeOutHandler(timeOutChan, driverInChan, networkSend)
 	go driverOutputHandler(driverOutChan, driverInChan, networkSend)
@@ -23,10 +18,9 @@ func CommanderInit(networkSend chan Message, commanderChan chan Message, aliveCh
 func commander(commanderChan chan Message, networkSend chan Message, driverOutChan chan Message, driverInChan chan Message, timerChan chan Message) {
 	for {
 		select {
-		case message = <- commanderChan:
+		case message := <- commanderChan:
 			switch {
-			case message.Type == "newElev" || message.Type == "newTarget" || message.Type == "targetUpdate" 
-										   || message.Type == "addElev"   || message.Type == "deleteOrder":
+			case message.Type == "newElev" || message.Type == "newTarget" || message.Type == "targetUpdate" || message.Type == "floorUpdate" || message.Type == "addElev"   || message.Type == "deleteOrder":
 				networkSend <- message
 
 			case message.Type == "newOrder":
@@ -72,7 +66,7 @@ func commander(commanderChan chan Message, networkSend chan Message, driverOutCh
 func doorTimeOutHandler(timeOutChan chan Message, driverInChan chan Message, networkSend chan Message) {
 	for {
 		select {
-		case message = <- timeOutChan:
+		case message := <- timeOutChan:
 			message.Content = "door"
 			message.Value = 0
 			driverInChan <- message
@@ -88,7 +82,7 @@ func doorTimeOutHandler(timeOutChan chan Message, driverInChan chan Message, net
 func driverOutputHandler(driverOutChan chan Message, driverInChan chan Message, networkSend chan Message) {
 	for {
 		select {
-		case message = <- driverOutChan:
+		case message := <- driverOutChan:
 			if message.Content == "floorReached" {
 				message.Type = message.Content
 				driverInChan <- message
@@ -104,14 +98,20 @@ func driverOutputHandler(driverOutChan chan Message, driverInChan chan Message, 
 	}
 }
 
-func masterAliveHandler(tickerChan chan Message, aliveChan chan Message, networkSend chan Message, notAliveCount int) {
+func masterAliveHandler(tickerChan chan Message, timerChan chan Message, aliveChan chan Message, networkSend chan Message) {
+	notAliveCount := 0
+	message := Message{}
+	message.Type = "alive"
+	message.Content = "Millisecond"
+	message.Value = 150
+	timerChan <- message
 	for {
 		select {
-		case message := <- tickerChan:
+		case message = <- tickerChan:
 			notAliveCount++
 			if notAliveCount == 5 {
 				destination := message.To
-				Println("Master dead!")		// IMPLEMENT PANIC
+				Println("Master dead!")
 				message.Type = "elevOffline"
 				message.From = 1
 				for i := 2; i < ELEV_COUNT + 1; i++ {
@@ -140,4 +140,8 @@ func masterAliveBroadcast(networkSend chan Message) {
 		Sleep(100 * Millisecond)
 		networkSend <- message
 	}
+}
+
+func (networkSend chan Message) {
+
 }

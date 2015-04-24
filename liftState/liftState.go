@@ -2,7 +2,6 @@ package liftState
 
 import (
 	."fmt"
-	."time"
 	."../network"
 )
 
@@ -12,7 +11,7 @@ type elevator struct {
 	state string
 }
 
-func LiftStateInit(networkReceive chan Message, commanderChan chan Message, aliveChan chan Message, fileOutChan chan Message, fileInChan chan Message) {
+func LiftState(networkReceive chan Message, commanderChan chan Message, aliveChan chan Message, fileOutChan chan Message, fileInChan chan Message) {
 
 	message := Message{}
 	elev := make([]elevator, 1, ELEV_COUNT + 1)
@@ -38,10 +37,6 @@ func LiftStateInit(networkReceive chan Message, commanderChan chan Message, aliv
 		}
 	}
 
-	go liftState(networkReceive, commanderChan, aliveChan)
-}
-
-func liftState(networkReceive chan Message, commanderChan chan Message, aliveChan chan Message) {
 	for {
 		select {
 		case message = <- networkReceive:
@@ -86,9 +81,11 @@ func liftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 							}
 						}	
 					}
-					message.To = bestElev
-					message.Type = "newTarget"
-					commanderChan <- message
+					if bestElev != 0 {
+						message.To = bestElev
+						message.Type = "newTarget"
+						commanderChan <- message
+					}
 				}
 
 				switch{
@@ -134,6 +131,8 @@ func liftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 
 			case message.Type == "floorReached":
 				Println(message)
+				message.Type = "floorUpdate"
+				commanderChan <- message
 				elev[message.From].floorNum = message.Floor
 				if elev[message.From].floorTarget == message.Floor || inside[message.Floor] == 1 || outUp[message.Floor] == 1 && elev[message.From].state == "MovingUp" || outDown[message.Floor] == 1 && elev[message.From].state == "MovingDown"{
 					message.Type = "command"
@@ -176,10 +175,10 @@ func liftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 				message.Type = "targetUpdate"
 				commanderChan <- message
 				message.Type = "command"
-				if message.Floor > elev[message.To].floorNum && elev[message.To].state != "Open" {
+				if message.Floor > elev[message.To].floorNum && elev[message.To].state == "Idle" {
 					message.Content = "up"
 					commanderChan <- message
-				} else if message.Floor < elev[message.To].floorNum && elev[message.To].state != "Open" {
+				} else if message.Floor < elev[message.To].floorNum && elev[message.To].state == "Idle" {
 					message.Content = "down"
 					commanderChan <- message
 				} else if message.Floor == elev[message.To].floorNum {
