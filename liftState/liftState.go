@@ -53,7 +53,13 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 
 			case message.Type == "addElev":
 				Println("Liftstate:", message.Type, message.Content, "From:", message.From)
-				elev = append(elev, elevator{0, 0, "Idle"})
+				if message.Value == 0 {
+					elev = append(elev, elevator{0, 0, "Idle"})
+				} else if message.Value == 1 {
+					elev[1].floorNum = 0
+					elev[1].floorTarget = 0
+					elev[1].state = "Idle"
+				}
 				Println("Added elevator", len(elev) - 1, "in elev")
 				Println("Number of elevators is now", len(elev) - 1)
 

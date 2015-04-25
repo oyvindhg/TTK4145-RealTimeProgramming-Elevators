@@ -22,6 +22,8 @@ func main(){
 	timerChan := make(chan Message, 0)
 	tickerChan := make(chan Message, 0)
 	timeOutChan := make(chan Message, 0)
+	deathInChan := make(chan Message, 0)
+	deathOutChan := make(chan Message, 0)
 	driverInChan := make(chan Message, 10)
 	driverOutChan := make(chan Message, 10)
 	Println("Heia!")
@@ -31,7 +33,7 @@ func main(){
 	}
 	go FileManager(fileOutChan, fileInChan)
 	go Timekeeper(tickerChan, timerChan, timeOutChan)
-	go NetworkInit(networkReceive, networkSend, fileOutChan, fileInChan)
+	go NetworkInit(networkReceive, networkSend, fileOutChan, fileInChan, deathInChan, deathOutChan)
 	go LiftState(networkReceive, commanderChan, aliveChan, fileOutChan, fileInChan)
 	go CommanderInit(networkSend, commanderChan, aliveChan, tickerChan, timerChan, timeOutChan, driverOutChan, driverInChan)
 

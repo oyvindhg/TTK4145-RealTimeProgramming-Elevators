@@ -155,6 +155,10 @@ func networkReceiver(networkReceive chan Message, receivedChannel chan Message, 
 					message.Value = 0		// new initialization
 				} else {
 					message.Value = 1 		// re-initialization
+					if (*IPlist)[1] != (*IPlist)[0] {
+						message.Type = "noMessage"
+						break
+					}
 				}
 
 				appendable := true							// if so add element to IPlist
@@ -216,8 +220,10 @@ func networkReceiver(networkReceive chan Message, receivedChannel chan Message, 
 					if appendable {
 						if len(*IPlist) == 2 && (*IPlist)[1] == (*IPlist)[0] {
 							(*IPlist)[1] = message.Content
+							message.Value = 0
 						} else {
 							*IPlist = append(*IPlist, message.Content)
+							message.Value = 1
 							Println("Added IP to IPlist, is now length", *IPlist)
 						}
 					}
@@ -229,7 +235,14 @@ func networkReceiver(networkReceive chan Message, receivedChannel chan Message, 
 
 			case message.Type == "elevOffline":
 				if len(*IPlist) > 2 {
-					if (*IPlist)[message.Value] == message.Content {
+					ipPresent := false
+					for i := 1; i < len(*IPlist); i++ {
+						if (*IPlist)[i] == message.Content {
+							ipPresent = true
+							message.Value = i
+						}
+					}
+					if ipPresent {
 						*IPlist = append((*IPlist)[:message.Value], (*IPlist)[message.Value+1:]...)
 						Println("Deleted element, IPlist is now:", *IPlist)
 						Println("Sent to elev", message.To)
@@ -278,6 +291,10 @@ func networkSender(networkSend chan Message, fileInChan chan Message, fileOutCha
 				message.To = 0
 			case message.Type == "floorReached":
 				message.To = -2
+			case message.Type == "elevOffline":
+				if len(*IPlist) > message.Value && message.Value > 0 && message.Content == "fromCommander" {
+					message.Content = (*IPlist)[message.Value]
+				}
 			}
 			if message.To == 0 {
 				for i := 1; i < len(*IPlist); i++ {
@@ -292,8 +309,6 @@ func networkSender(networkSend chan Message, fileInChan chan Message, fileOutCha
 	}
 }
 
-
-
 func send(message Message, IPlist[] string, networkSend chan Message) {
 	if message.Type != "imAlive" {
 		Println("Send is about to send", message.Type, "to elev", message.To)
@@ -302,9 +317,6 @@ func send(message Message, IPlist[] string, networkSend chan Message) {
 	if message.To > len(IPlist) - 1 {
 		Println("Returning:", message.Type, message.To)
 		return
-	}
-	if message.Type == "elevOffline" && len(IPlist) > message.Value {
-		message.Content = IPlist[message.Value]
 	}
 
 	recipient := ""
@@ -327,10 +339,13 @@ func send(message Message, IPlist[] string, networkSend chan Message) {
 	if error != nil {
 		if message.From == message.To {
 			connection, _ = net.Dial("tcp", "localhost"+ PORT)
+		} else if message.To == -3 {
+			return
 		} else {
 			Println("Send connection error: ", error)
 			message.Type = "elevOffline"
 			message.Value = message.To
+			message.Content = recipient
 			for i := 1; i < len(IPlist); i++ {
 				if i != message.Value {
 					Println("Send function sends elevOffline message to elev", i)				
@@ -348,4 +363,8 @@ func send(message Message, IPlist[] string, networkSend chan Message) {
 	}
 	connection.Write(byteMessage)
 
+}
+
+func deathHandler() {
+	
 }

@@ -111,6 +111,7 @@ func masterAliveHandler(tickerChan chan Message, timerChan chan Message, aliveCh
 				Println("Master dead!")
 				message.Type = "elevOffline"
 				message.Value = 1
+				message.Content = "fromCommander"
 				message.To = -2
 				Println("Ticker sends elevOffline message to itself")	
 				networkSend <- message
