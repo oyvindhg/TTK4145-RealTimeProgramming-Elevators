@@ -21,7 +21,7 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 
 	message.Type = "findMaster"
 	commanderChan <- message
-	
+
 	for i := 1; i < FLOOR_COUNT + 1; i++ {
 		message.Type = "readInside"
 		message.Floor = i
@@ -42,6 +42,8 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 		select {
 		case message = <- networkReceive:
 			switch {
+			case message.Type == "noMessage":
+				Println("Liftstate: Got an empty message")
 			case message.Type == "command" || message.Type == "master":
 				Println(message.Type, message.Content, message.From)
 				commanderChan <- message
@@ -60,8 +62,8 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 				elev = append(elev[:message.Value], elev[message.Value+1:]...)
 				Println("Deleted elevator", message.Value, "from elev")
 				Println("Number of elevators is now", len(elev) - 1)
-				if message.To == 2 && message.Value == 1 {
-					Println("I am nr 2 in line and master died, therefore I am to be new master")
+				if message.To == 2 && message.Value == 1 || message.To == message.From && message.To != 1 && len(elev) == 2 {
+					Println("I am to be the new master")
 					message.Type = "master"
 					commanderChan <- message
 				}

@@ -7,7 +7,7 @@ import (
 	."encoding/json"
 )
 
-const ELEV_COUNT = 3
+const ELEV_COUNT = 4
 const FLOOR_COUNT = 4
 const MASTER_INIT_IP = "129.241.187.154"
 const PORT = ":12345"
@@ -62,6 +62,42 @@ func NetworkInit(networkReceive chan Message, networkSend chan Message, fileOutC
 
 	go networkReceiver(networkReceive, receivedChannel, networkSend, fileInChan, fileEmpty, &IPlist)
 	go networkSender(networkSend, fileEmpty, &IPlist)
+}
+
+func startAliveBroadcast(message Message, networkSend chan Message) {
+	Sleep(100 * Millisecond)
+	networkSend <- message
+}
+
+func listen(receivedChannel chan Message) {
+	listener, error := net.Listen("tcp", PORT)
+	if error != nil {
+		Println("Listen error: ", error)
+	}
+	defer listener.Close()
+	for {
+		connection, err := listener.Accept()
+		if error != nil {
+			Println("Listen connection error: ", err)
+		}
+		go receive(connection, receivedChannel)
+	}
+}
+
+func receive(connection net.Conn, receivedChannel chan Message) {
+	defer connection.Close()
+	buffer := make([]byte, 1024)
+	message := Message{}
+	length, error := connection.Read(buffer)
+	if error != nil {
+		Println("Receive connection error: ", error)
+	}
+	err := Unmarshal(buffer[:length], &message)
+	
+	if err != nil {
+		Println("Receive error: ", err)
+	}
+	receivedChannel <- message
 }
 
 func networkReceiver(networkReceive chan Message, receivedChannel chan Message, networkSend chan Message, fileInChan chan Message, fileEmpty bool, IPlist *[]string) {
@@ -141,9 +177,19 @@ func networkReceiver(networkReceive chan Message, receivedChannel chan Message, 
 				message.Type = "addElev"
 
 			case message.Type == "elevOffline":
-				*IPlist = append((*IPlist)[:message.Value], (*IPlist)[message.Value+1:]...)
-				Println("Deleted element, IPlist is now:", *IPlist)
-				Println("Sent to elev", message.To)
+				if len(*IPlist) > 2 {
+					if (*IPlist)[message.Value] == message.Content {
+						*IPlist = append((*IPlist)[:message.Value], (*IPlist)[message.Value+1:]...)
+						Println("Deleted element, IPlist is now:", *IPlist)
+						Println("Sent to elev", message.To)
+					} else {
+						Println("Attempted to delete element, didn't work")
+						message.Type = "noMessage"
+					}
+				} else {
+					Println("Tried to delete elev 1")
+					message.Type = "noMessage"
+				}
 			}
 			networkReceive <- message
 		}
@@ -193,20 +239,7 @@ func networkSender(networkSend chan Message, fileEmpty bool, IPlist *[]string) {
 	}
 }
 
-func listen(receivedChannel chan Message) {
-	listener, error := net.Listen("tcp", PORT)
-	if error != nil {
-		Println("Listen error: ", error)
-	}
-	defer listener.Close()
-	for {
-		connection, err := listener.Accept()
-		if error != nil {
-			Println("Listen connection error: ", err)
-		}
-		go receive(connection, receivedChannel)
-	}
-}
+
 
 func send(message Message, IPlist[] string, networkSend chan Message) {
 	if message.Type != "imAlive" {
@@ -216,6 +249,9 @@ func send(message Message, IPlist[] string, networkSend chan Message) {
 	if message.To > len(IPlist) - 1 {
 		Println("Returning:", message.Type, message.To)
 		return
+	}
+	if message.Type == "elevOffline" && len(IPlist) > message.Value {
+		message.Content = IPlist[message.Value]
 	}
 
 	recipient := ""
@@ -228,7 +264,10 @@ func send(message Message, IPlist[] string, networkSend chan Message) {
 	case message.To > 0:
 		recipient = IPlist[message.To]
 	}
-	connection, error := net.Dial("tcp", recipient+ PORT)
+	
+
+	connection, error := net.DialTimeout("tcp", recipient+ PORT, Duration(100)*Millisecond)
+
 	if error != nil {
 		if message.From == message.To {
 			connection, _ = net.Dial("tcp", "localhost"+ PORT)
@@ -246,43 +285,11 @@ func send(message Message, IPlist[] string, networkSend chan Message) {
 			return
 		}
 	}
+
 	byteMessage, err := Marshal(message)
 	if err != nil {
 		Println("Send error: ", err)
 	}
 	connection.Write(byteMessage)
-}
 
-func receive(connection net.Conn, receivedChannel chan Message) {
-	defer connection.Close()
-	buffer := make([]byte, 1024)
-	message := Message{}
-	length, error := connection.Read(buffer)
-	if error != nil {
-		Println("Receive connection error: ", error)
-	}
-	err := Unmarshal(buffer[:length], &message)
-	
-	if err != nil {
-		Println("Receive error: ", err)
-	}
-	receivedChannel <- message
 }
-
-func startAliveBroadcast(message Message, networkSend chan Message) {
-	Sleep(100 * Millisecond)
-	networkSend <- message
-}
-
-/*
-				appendable := true
-				for i := 1; i < len(*IPlist); i++ {
-					if (*IPlist)[i] == message.Content {
-						appendable = false
-					}
-					Println(*IPlist)
-				}
-				if appendable {
-					*IPlist = append(*IPlist, message.Content)
-				}
-*/

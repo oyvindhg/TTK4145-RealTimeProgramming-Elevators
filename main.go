@@ -66,9 +66,6 @@ Kanskje legge til en teller? BRUTE FORCE
 Under utregning kan states og retning og floorNum få prioritetutdeling
 
 
-WHY DOUBLE STATEUPDATES
-
-
 NB! Når ordre for en heis i 4. etasje bestilles opp fra 3. og så 2. til tom kø
 	vil den ikke kjøre ned til 2. etasje først, men fikse kun 3. etasje og går ut ifra
 	at de andre heisene fikser duden i 2. etasje
