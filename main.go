@@ -24,7 +24,7 @@ func main(){
 	timeOutChan := make(chan Message, 0)
 	driverInChan := make(chan Message, 10)
 	driverOutChan := make(chan Message, 10)
-
+	Println("Heia!")
 	if !DriverInit(driverOutChan, driverInChan){
 		Println("Driver init failed!")
 		return
@@ -51,6 +51,8 @@ Fiks un-constant MASTER_INIT_IP som endres i network om ikke master ip tilgjenge
 
 Fjern buffere
 
+Legg inn commander case i networkSender så den ikke sender til alle
+
 Legg til sjekk etter 1 sekund i commander
 
 Legg inn en count for antall prøvd å sende eller forskjellige stages
@@ -64,9 +66,7 @@ Kanskje legge til en teller? BRUTE FORCE
 Under utregning kan states og retning og floorNum få prioritetutdeling
 
 
-AMMAGAAAD FIX FLOORUPDATE IN FLOORREACHED GEEZUS
-
-HUSK Å LEGGE INN POINTER OG REFERENCE I NETWORKRECEIVER TIL IPLIST SLICE
+WHY DOUBLE STATEUPDATES
 
 
 NB! Når ordre for en heis i 4. etasje bestilles opp fra 3. og så 2. til tom kø

@@ -43,11 +43,6 @@ func NetworkInit(networkReceive chan Message, networkSend chan Message, fileOutC
 		}
 	}
 
-	if IPlist[0] == MASTER_INIT_IP {
-		message.Type = "master"
-		go startAliveBroadcast(message, networkSend)
-	}
-
 	for i := 1; i < ELEV_COUNT + 1; i++ {
 		message.Type = "readIP"
 		message.Value = i
@@ -59,47 +54,96 @@ func NetworkInit(networkReceive chan Message, networkSend chan Message, fileOutC
 		}
 	}
 
-	go networkReceiver(networkReceive, receivedChannel, networkSend, fileInChan, &IPlist)
+	if fileEmpty && IPlist[0] == MASTER_INIT_IP {
+		message.Type = "master"
+		message.To = -2
+		go startAliveBroadcast(message, networkSend)
+	}
+
+	go networkReceiver(networkReceive, receivedChannel, networkSend, fileInChan, fileEmpty, &IPlist)
 	go networkSender(networkSend, fileEmpty, &IPlist)
 }
 
-func networkReceiver(networkReceive chan Message, receivedChannel chan Message, networkSend chan Message, fileInChan chan Message, IPlist *[]string) {
+func networkReceiver(networkReceive chan Message, receivedChannel chan Message, networkSend chan Message, fileInChan chan Message, fileEmpty bool, IPlist *[]string) {
 	for{
 		select{
 		case message := <- receivedChannel:
 			switch{
-			case message.Type == "newElev":
-				appendable := true
+			case message.Type == "findMaster":
+				Println("Network received:", message.Type, message.Content, "From:", message.From)
+				Println("Length of IPlist is", len(*IPlist) - 1)
+
+				if message.From == message.To {
+					IPlistLength := len(*IPlist)
+					for i := 1; i < IPlistLength; i++ {
+						*IPlist = append((*IPlist)[:1], (*IPlist)[2:]...)
+
+					}
+					Println("After IPlist deletion, length is", len(*IPlist) - 1)
+					break
+				}
+
+				if len(*IPlist) > 1 {
+					if (*IPlist)[0] != (*IPlist)[1] {
+						Println("I am not master")
+						break
+					}
+				}
+
+				appendable := true							// if so add element to IPlist
 				for i := 1; i < len(*IPlist); i++ {
 					if (*IPlist)[i] == message.Content {
 						appendable = false
 					}
+					
 				}
 				if appendable {
 					*IPlist = append(*IPlist, message.Content)
+					Println("Added element, IPlist is now:", *IPlist)
 				}
+				
 				message.Type = "writeIP"
-				fileInChan <- message
+				fileInChan <- message 						// writeIP to file
+				
 				message.Type = "addElev"
-				message.To = len(*IPlist) - 1
-				if len(*IPlist) > 2 && (*IPlist)[0] == (*IPlist)[1] {
-					for i := 1; i < len(*IPlist); i++ {
-						message.Content = (*IPlist)[i]
-						networkSend <- message
-					}
+				message.To = len(*IPlist) - 1               // send all old elevs to added elev
+
+				for i := 1; i < len(*IPlist) - 1; i++ {
+					Println("Sending old elevs to", message.To)
+					message.Content = (*IPlist)[i]
+					networkSend <- message
 				}
+
+				message.Content = (*IPlist)[len(*IPlist) - 1] // send "new" add elev to all
+				message.To = 0
+				Println("Sending addElev to all")
+				networkSend <- message
+
+				message.Type = "noMessage"
+
 			case message.Type == "addElev":
-				appendable := true
-				for i := 1; i < len(*IPlist); i++ {
-					if (*IPlist)[i] == message.Content {
-						appendable = false
+				Println("Network received:", message.Type, message.Content, "From:", message.From)
+				if message.To != 1 {
+					appendable := true
+					for i := 1; i < len(*IPlist); i++ {
+						if (*IPlist)[i] == message.Content {
+							appendable = false
+						}
 					}
+					if appendable {
+						*IPlist = append(*IPlist, message.Content)
+						Println("Added IP to IPlist, is now length", *IPlist)
+					}
+					message.Type = "writeIP"
+					fileInChan <- message
 				}
-				if appendable {
-					*IPlist = append(*IPlist, message.Content)
-				}
+							
+				message.Type = "addElev"
+
 			case message.Type == "elevOffline":
 				*IPlist = append((*IPlist)[:message.Value], (*IPlist)[message.Value+1:]...)
+				Println("Deleted element, IPlist is now:", *IPlist)
+				Println("Sent to elev", message.To)
 			}
 			networkReceive <- message
 		}
@@ -117,11 +161,12 @@ func networkSender(networkSend chan Message, fileEmpty bool, IPlist *[]string) {
 				}
 			}
 			switch{								//0 = all, -1 = MASTER_INIT_IP, -2 = localhost
-			case message.Type == "newElev":
+			case message.Type == "findMaster":
 				message.Content = (*IPlist)[0]
 				if fileEmpty {
 					message.To = -1
 				} else {
+					Println("Sending findMaster to all")
 					message.To = 0
 				}
 			case message.Type == "newOrder" || message.Type == "deleteOrder":
@@ -139,6 +184,7 @@ func networkSender(networkSend chan Message, fileEmpty bool, IPlist *[]string) {
 				for i := 1; i < len(*IPlist); i++ {
 					message.To = i
 					go send(message, *IPlist, networkSend)
+					
 				}
 			} else {
 				go send(message, *IPlist, networkSend)
@@ -163,9 +209,15 @@ func listen(receivedChannel chan Message) {
 }
 
 func send(message Message, IPlist[] string, networkSend chan Message) {
+	if message.Type != "imAlive" {
+		Println("Send is about to send", message.Type, "to elev", message.To)
+		Println("IPlist has length", len(IPlist) - 1)
+	}
 	if message.To > len(IPlist) - 1 {
+		Println("Returning:", message.Type, message.To)
 		return
 	}
+
 	recipient := ""
 	switch{
 	case message.To == -2:
@@ -177,7 +229,6 @@ func send(message Message, IPlist[] string, networkSend chan Message) {
 		recipient = IPlist[message.To]
 	}
 	connection, error := net.Dial("tcp", recipient+ PORT)
-
 	if error != nil {
 		if message.From == message.To {
 			connection, _ = net.Dial("tcp", "localhost"+ PORT)
@@ -187,7 +238,7 @@ func send(message Message, IPlist[] string, networkSend chan Message) {
 			message.Value = message.To
 			for i := 1; i < len(IPlist); i++ {
 				if i != message.Value {
-					Println("Sending elevOffline message to elev", i)				
+					Println("Send function sends elevOffline message to elev", i)				
 					message.To = i
 					networkSend <- message
 				}
@@ -222,3 +273,16 @@ func startAliveBroadcast(message Message, networkSend chan Message) {
 	Sleep(100 * Millisecond)
 	networkSend <- message
 }
+
+/*
+				appendable := true
+				for i := 1; i < len(*IPlist); i++ {
+					if (*IPlist)[i] == message.Content {
+						appendable = false
+					}
+					Println(*IPlist)
+				}
+				if appendable {
+					*IPlist = append(*IPlist, message.Content)
+				}
+*/

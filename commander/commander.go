@@ -10,7 +10,6 @@ func CommanderInit(networkSend chan Message, commanderChan chan Message, aliveCh
 	
 	go commander(commanderChan, networkSend, driverOutChan, driverInChan, timerChan)
 	go masterAliveHandler(tickerChan, timerChan, aliveChan, networkSend)
-	go masterAliveBroadcast(commanderChan )
 	go doorTimeOutHandler(timeOutChan, driverInChan, networkSend)
 	go driverOutputHandler(driverOutChan, driverInChan, networkSend)
 }
@@ -20,7 +19,7 @@ func commander(commanderChan chan Message, networkSend chan Message, driverOutCh
 		select {
 		case message := <- commanderChan:
 			switch {
-			case message.Type == "newElev" || message.Type == "newTarget" || message.Type == "targetUpdate" || message.Type == "floorReached" || message.Type == "floorUpdate" || message.Type == "addElev"   || message.Type == "deleteOrder":
+			case message.Type == "findMaster" || message.Type == "newTarget" || message.Type == "floorReached" || message.Type == "targetUpdate" || message.Type == "floorUpdate" || message.Type == "addElev" || message.Type == "deleteOrder":
 				networkSend <- message
 
 			case message.Type == "newOrder":
@@ -49,7 +48,6 @@ func commander(commanderChan chan Message, networkSend chan Message, driverOutCh
 					timerChan <- message
 					message.Type = "stateUpdate"
 					message.Content = "Open"
-					//Println(message)
 					networkSend <- message
 					message.Content = "stop"
 				}
@@ -90,7 +88,7 @@ func driverOutputHandler(driverOutChan chan Message, driverInChan chan Message, 
 			switch {
 			case message.Content == "inside" || message.Content == "outsideUp" || message.Content == "outsideDown":
 				message.Type = "newOrder"
-			case message.Content == "stop" || message.Content == "obstrOn" || message.Content == "obstrOff":
+			case message.Content == "stopButton" || message.Content == "obstrOn" || message.Content == "obstrOff":
 				message.Type = "stateUpdate"
 			}
 			networkSend <- message
@@ -109,23 +107,15 @@ func masterAliveHandler(tickerChan chan Message, timerChan chan Message, aliveCh
 		select {
 		case message = <- tickerChan:
 			notAliveCount++
-			if notAliveCount == 5 {
-				destination := message.To
+			if notAliveCount == 10 {
 				Println("Master dead!")
 				message.Type = "elevOffline"
 				message.Value = 1
-				for i := 2; i < ELEV_COUNT + 1; i++ {
-					if i != destination {		
-						Println("Sending elevOffline message to elev", i)				
-						message.To = i
-						networkSend <- message
-					}
-				}
-				message.Type = "broadcast"
-				message.To = 2
-				//Println(message)
+				message.To = -2
+				Println("Ticker sends elevOffline message to itself")	
 				networkSend <- message
 			}
+
 		case <- aliveChan:
 			notAliveCount = 0
 		}
@@ -135,6 +125,8 @@ func masterAliveHandler(tickerChan chan Message, timerChan chan Message, aliveCh
 func masterAliveBroadcast(networkSend chan Message) {
 	message := Message{}
 	message.Type = "imAlive"
+	message.To = 0
+	Println("Initiating masterAliveBroadcast")
 	for {	
 		Sleep(100 * Millisecond)
 		networkSend <- message

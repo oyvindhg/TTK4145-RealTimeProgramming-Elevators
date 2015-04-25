@@ -45,11 +45,13 @@ func DriverInit(driverOutChan chan Message, driverInChan chan Message) (bool) {
 	}
 	if inFloor == 0 {
 		message.Type = "command"
+		message.To = -2
 		message.Content = "down"
 		driverOutChan <- message
 	} else {
 		message.Type = "command"
 		message.Content = "stop"
+		message.To = -2
 		driverOutChan <- message
 	}
 	go driverReader(driverOutChan, floorSensors, buttonChannelMatrix)
@@ -92,7 +94,7 @@ func driverReader(driverOutChan chan Message, floorSensors[] int, buttonChannelM
 		}
 		if IOReadBit(STOP) != stopSignalLastCheck {
 			if stopSignalLastCheck == 0 {
-				message.Content = "stop"
+				message.Content = "stopButton"
 				driverOutChan <- message
 				stopSignalLastCheck = 1
 			} else if stopSignalLastCheck == 1 {
@@ -146,7 +148,7 @@ func driverWriter(driverInChan chan Message, floorSensors[] int) {
 					elevSetFloorIndicator(message.Floor)
 				case message.Content == "inside" || message.Content == "outsideUp" || message.Content == "outsideDown":
 					elevSetButtonLamp(message.Content, message.Floor, message.Value)
-				case message.Content == "stop":
+				case message.Content == "stopButton":
 					elevSetStopLamp(message.Value)
 				case message.Content == "door":
 					elevSetDoorOpenLamp(message.Value)
