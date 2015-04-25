@@ -61,12 +61,39 @@ func NetworkInit(networkReceive chan Message, networkSend chan Message, fileOutC
 	}
 
 	go networkReceiver(networkReceive, receivedChannel, networkSend, fileInChan, fileEmpty, &IPlist)
-	go networkSender(networkSend, fileEmpty, &IPlist)
+	go networkSender(networkSend, fileInChan, fileOutChan, fileEmpty, &IPlist)
 }
 
 func startAliveBroadcast(message Message, networkSend chan Message) {
 	Sleep(100 * Millisecond)
 	networkSend <- message
+}
+
+func lookForElevators(networkSend chan Message, fileInChan chan Message, fileOutChan chan Message, IPlist *[]string) {
+	for {
+		Sleep(1 * Second)
+		message := Message{}
+		if len(*IPlist) == 2 {
+			for i := 1; i < ELEV_COUNT + 1; i++ {
+				message.Type = "readIP"
+				message.Value = i
+				fileInChan <- message
+				message = <- fileOutChan
+				matchingIP := false
+				for j := 1; j < len(*IPlist); j++ {
+					if (*IPlist)[j] == message.Content {
+						matchingIP = true
+					}
+				}
+				if !matchingIP && message.Content != "noIP" {
+					message.Type = message.Content
+					message.Content = (*IPlist)[0]
+					message.To = -3
+					go send(message, *IPlist, networkSend)
+				}
+			}
+		}
+	}
 }
 
 func listen(receivedChannel chan Message) {
@@ -108,22 +135,26 @@ func networkReceiver(networkReceive chan Message, receivedChannel chan Message, 
 			case message.Type == "findMaster":
 				Println("Network received:", message.Type, message.Content, "From:", message.From)
 				Println("Length of IPlist is", len(*IPlist) - 1)
+				if message.To != -3 {
+					if message.From == message.To {
+						IPlistLength := len(*IPlist)
+						for i := 1; i < IPlistLength; i++ {
+							*IPlist = append((*IPlist)[:1], (*IPlist)[2:]...)
 
-				if message.From == message.To {
-					IPlistLength := len(*IPlist)
-					for i := 1; i < IPlistLength; i++ {
-						*IPlist = append((*IPlist)[:1], (*IPlist)[2:]...)
-
-					}
-					Println("After IPlist deletion, length is", len(*IPlist) - 1)
-					break
-				}
-
-				if len(*IPlist) > 1 {
-					if (*IPlist)[0] != (*IPlist)[1] {
-						Println("I am not master")
+						}
+						Println("After IPlist deletion, length is", len(*IPlist) - 1)
 						break
 					}
+
+					if len(*IPlist) > 1 {
+						if (*IPlist)[0] != (*IPlist)[1] {
+							Println("I am not master")
+							break
+						}
+					}
+					message.Value = 0		// new initialization
+				} else {
+					message.Value = 1 		// re-initialization
 				}
 
 				appendable := true							// if so add element to IPlist
@@ -159,7 +190,23 @@ func networkReceiver(networkReceive chan Message, receivedChannel chan Message, 
 
 			case message.Type == "addElev":
 				Println("Network received:", message.Type, message.Content, "From:", message.From)
-				if message.To != 1 {
+				if message.Value == 0 {
+					if message.To != 1 {
+						appendable := true
+						for i := 1; i < len(*IPlist); i++ {
+							if (*IPlist)[i] == message.Content {
+								appendable = false
+							}
+						}
+						if appendable {
+							*IPlist = append(*IPlist, message.Content)
+							Println("Added IP to IPlist, is now length", *IPlist)
+						}
+						message.Type = "writeIP"
+						fileInChan <- message
+					}
+					
+				} else if message.Value == 1 {
 					appendable := true
 					for i := 1; i < len(*IPlist); i++ {
 						if (*IPlist)[i] == message.Content {
@@ -167,13 +214,17 @@ func networkReceiver(networkReceive chan Message, receivedChannel chan Message, 
 						}
 					}
 					if appendable {
-						*IPlist = append(*IPlist, message.Content)
-						Println("Added IP to IPlist, is now length", *IPlist)
+						if len(*IPlist) == 2 && (*IPlist)[1] == (*IPlist)[0] {
+							(*IPlist)[1] = message.Content
+						} else {
+							*IPlist = append(*IPlist, message.Content)
+							Println("Added IP to IPlist, is now length", *IPlist)
+						}
 					}
 					message.Type = "writeIP"
 					fileInChan <- message
+
 				}
-							
 				message.Type = "addElev"
 
 			case message.Type == "elevOffline":
@@ -196,7 +247,7 @@ func networkReceiver(networkReceive chan Message, receivedChannel chan Message, 
 	}
 }
 
-func networkSender(networkSend chan Message, fileEmpty bool, IPlist *[]string) {
+func networkSender(networkSend chan Message, fileInChan chan Message, fileOutChan chan Message, fileEmpty bool, IPlist *[]string) {
 	for {
 		select {
 		case message := <- networkSend:
@@ -207,6 +258,8 @@ func networkSender(networkSend chan Message, fileEmpty bool, IPlist *[]string) {
 				}
 			}
 			switch{								//0 = all, -1 = MASTER_INIT_IP, -2 = localhost
+			case message.Type == "lookForElevators":
+				go lookForElevators(networkSend, fileInChan, fileOutChan, IPlist)
 			case message.Type == "findMaster":
 				message.Content = (*IPlist)[0]
 				if fileEmpty {
@@ -256,6 +309,9 @@ func send(message Message, IPlist[] string, networkSend chan Message) {
 
 	recipient := ""
 	switch{
+	case message.To == -3:
+		recipient = message.Type
+		message.Type = "findMaster"
 	case message.To == -2:
 		message.To = message.From
 		recipient = "localhost"

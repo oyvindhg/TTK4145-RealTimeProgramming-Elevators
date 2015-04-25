@@ -124,10 +124,12 @@ func masterAliveHandler(tickerChan chan Message, timerChan chan Message, aliveCh
 
 func masterAliveBroadcast(networkSend chan Message) {
 	message := Message{}
+	message.Type = "lookForElevators"
+	networkSend <- message
 	message.Type = "imAlive"
 	message.To = 0
 	Println("Initiating masterAliveBroadcast")
-	for {	
+	for {
 		Sleep(100 * Millisecond)
 		networkSend <- message
 	}
