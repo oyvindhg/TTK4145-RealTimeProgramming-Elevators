@@ -9,6 +9,7 @@ type elevator struct {
 	floorNum int
 	floorTarget int
 	state string
+	isMaster bool
 }
 
 func LiftState(networkReceive chan Message, commanderChan chan Message, aliveChan chan Message, fileOutChan chan Message, fileInChan chan Message) {
@@ -42,8 +43,6 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 		select {
 		case message = <- networkReceive:
 			switch {
-			case message.Type == "noMessage":
-				Println("Liftstate: Got an empty message")
 			case message.Type == "command" || message.Type == "master":
 				Println(message.Type, message.Content, message.From)
 				commanderChan <- message
@@ -51,24 +50,28 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 			case message.Type == "imAlive":
 				aliveChan <- message
 
+			case message.Type == "newMaster":
+
+			case message.Type == "findMaster":
+				if elev[message.To].isMaster {
+					for i := 1; i < len(elev)
+
+					message.Value = message.To
+					message.Type = "newMaster"
+					message.To = message.From
+					commanderChan <- message
+				}
+
 			case message.Type == "addElev":
 				Println("Liftstate:", message.Type, message.Content, "From:", message.From)
-				if message.Value == 0 {
-					elev = append(elev, elevator{0, 0, "Idle"})
-				} else if message.Value == 1 {
-					elev[1].floorNum = 0
-					elev[1].floorTarget = 0
-					elev[1].state = "Idle"
-				}
+				elev = append(elev, elevator{0, 0, "Idle"})
 				Println("Added elevator", len(elev) - 1, "in elev")
 				Println("Number of elevators is now", len(elev) - 1)
 
 			case message.Type == "elevOffline":
 				Println("Liftstate:", message.Type, message.Value, "From:", message.From)
-				elev = append(elev[:message.Value], elev[message.Value+1:]...)
-				Println("Deleted elevator", message.Value, "from elev")
-				Println("Number of elevators is now", len(elev) - 1)
-				if message.To == 2 && message.Value == 1 || message.To == message.From && message.To != 1 && len(elev) == 2 {
+				(*elev)[message.Value], (*elev)[len(*elev) - 1] = (*elev)[len(*elev) - 1], (*elev)[message.Value]
+				if message.Value == 1 && message.To == len(*elev) - 1{
 					Println("I am to be the new master")
 					message.Type = "master"
 					commanderChan <- message

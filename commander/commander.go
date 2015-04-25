@@ -6,10 +6,10 @@ import (
 	."../network"
 )
 
-func CommanderInit(networkSend chan Message, commanderChan chan Message, aliveChan chan Message, tickerChan chan Message, timerChan chan Message, timeOutChan chan Message, driverOutChan chan Message, driverInChan chan Message) {
+func CommanderInit(networkSend chan Message, commanderChan chan Message, aliveChan chan Message, tickerChan chan Message, timerChan chan Message, timeOutChan chan Message, driverOutChan chan Message, driverInChan chan Message, failureChan chan Message) {
 	
 	go commander(commanderChan, networkSend, driverOutChan, driverInChan, timerChan)
-	go masterAliveHandler(tickerChan, timerChan, aliveChan, networkSend)
+	go masterAliveHandler(tickerChan, timerChan, aliveChan, failureChan)
 	go doorTimeOutHandler(timeOutChan, driverInChan, networkSend)
 	go driverOutputHandler(driverOutChan, driverInChan, networkSend)
 }
@@ -96,7 +96,7 @@ func driverOutputHandler(driverOutChan chan Message, driverInChan chan Message, 
 	}
 }
 
-func masterAliveHandler(tickerChan chan Message, timerChan chan Message, aliveChan chan Message, networkSend chan Message) {
+func masterAliveHandler(tickerChan chan Message, timerChan chan Message, aliveChan chan Message, failureChan chan Message) {
 	notAliveCount := 0
 	message := Message{}
 	message.Type = "alive"
@@ -107,14 +107,10 @@ func masterAliveHandler(tickerChan chan Message, timerChan chan Message, aliveCh
 		select {
 		case message = <- tickerChan:
 			notAliveCount++
-			if notAliveCount == 10 {
-				Println("Master dead!")
-				message.Type = "elevOffline"
-				message.Value = 1
-				message.Content = "fromCommander"
-				message.To = -2
-				Println("Ticker sends elevOffline message to itself")	
-				networkSend <- message
+			if notAliveCount == 5 {
+				message.Type = "masterOffline"
+				Println("Master is offline!")	
+				failureChan <- message
 			}
 
 		case <- aliveChan:
