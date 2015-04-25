@@ -11,6 +11,7 @@ const N_BUTTONS = 3
 
 func DriverInit(driverOutChan chan Message, driverInChan chan Message) (bool) {
 
+	message := Message{}
 	floorSensors := []int{SENSOR_FLOOR1, SENSOR_FLOOR2, SENSOR_FLOOR3, SENSOR_FLOOR4}
 
 	buttonChannelMatrix := [][]int{
@@ -43,7 +44,13 @@ func DriverInit(driverOutChan chan Message, driverInChan chan Message) (bool) {
 		}
 	}
 	if inFloor == 0 {
-		elevSetEngineSpeed("down")
+		message.Type = "command"
+		message.Content = "down"
+		driverOutChan <- message
+	} else {
+		message.Type = "command"
+		message.Content = "stop"
+		driverOutChan <- message
 	}
 	go driverReader(driverOutChan, floorSensors, buttonChannelMatrix)
 	go driverWriter(driverInChan, floorSensors)

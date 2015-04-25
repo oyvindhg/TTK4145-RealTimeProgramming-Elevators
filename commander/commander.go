@@ -20,7 +20,7 @@ func commander(commanderChan chan Message, networkSend chan Message, driverOutCh
 		select {
 		case message := <- commanderChan:
 			switch {
-			case message.Type == "newElev" || message.Type == "newTarget" || message.Type == "targetUpdate" || message.Type == "floorUpdate" || message.Type == "addElev"   || message.Type == "deleteOrder":
+			case message.Type == "newElev" || message.Type == "newTarget" || message.Type == "targetUpdate" || message.Type == "floorReached" || message.Type == "floorUpdate" || message.Type == "addElev"   || message.Type == "deleteOrder":
 				networkSend <- message
 
 			case message.Type == "newOrder":
@@ -113,12 +113,11 @@ func masterAliveHandler(tickerChan chan Message, timerChan chan Message, aliveCh
 				destination := message.To
 				Println("Master dead!")
 				message.Type = "elevOffline"
-				message.From = 1
+				message.Value = 1
 				for i := 2; i < ELEV_COUNT + 1; i++ {
 					if i != destination {		
 						Println("Sending elevOffline message to elev", i)				
 						message.To = i
-						//Println(message)
 						networkSend <- message
 					}
 				}

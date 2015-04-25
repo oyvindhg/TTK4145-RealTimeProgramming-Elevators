@@ -177,12 +177,10 @@ func send(message Message, IPlist[] string, networkSend chan Message) {
 		recipient = IPlist[message.To]
 	}
 	connection, error := net.Dial("tcp", recipient+ PORT)
-	defer connection.Close()
 
 	if error != nil {
 		if message.From == message.To {
-			connection, _ := net.Dial("tcp", "localhost"+ PORT)
-			defer connection.Close()
+			connection, _ = net.Dial("tcp", "localhost"+ PORT)
 		} else {
 			Println("Send connection error: ", error)
 			message.Type = "elevOffline"
@@ -193,11 +191,6 @@ func send(message Message, IPlist[] string, networkSend chan Message) {
 					message.To = i
 					networkSend <- message
 				}
-			}
-			if message.To == 1 {
-				Sleep(100 * Millisecond)
-				message.Type = "master"
-				networkSend <- message
 			}
 			return
 		}

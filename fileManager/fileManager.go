@@ -137,7 +137,7 @@ func readIP() []string{
 	IPs := []string{}
 
 	if err != nil {
-	    Println("File does not exist. New file made \n")
+	    Println("File does not exist. New file made")
 
 		f, err := os.Create(directory + "/IP.txt")
     	if err != nil {

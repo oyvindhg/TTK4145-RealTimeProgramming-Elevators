@@ -42,22 +42,26 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 		case message = <- networkReceive:
 			switch {
 			case message.Type == "command" || message.Type == "master":
-				Println(message)
+				Println(message.Type, message.Content, message.From)
 				commanderChan <- message
 
 			case message.Type == "imAlive":
 				aliveChan <- message
 
 			case message.Type == "newElev" || message.Type == "addElev":
-				Println(message)
+				Println(message.Type, message.Content, message.From)
 				elev = append(elev, elevator{0, 0, "Idle"})
 
 			case message.Type == "elevOffline":
-				Println(message)
+				Println(message.Type, message.Value, message.From)
 				elev = append(elev[:message.Value], elev[message.Value+1:]...)
+				if message.To == 2 && message.Value == 1 {
+					message.Type = "master"
+					commanderChan <- message
+				}
 
 			case message.Type == "newOrder":
-				Println(message)
+				Println(message.Type, message.Floor, message.From)
 				if message.To == 1 {
 					bestFloor := FLOOR_COUNT
 					bestElev := 0
@@ -71,7 +75,7 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 						} else if message.Floor - elev[i].floorNum == -1 && elev[i].state == "MovingDown"{
 							break
 						}
-						if elev[i].state == "Idle" || elev[i].state == "Open" {
+						if elev[i].state == "Idle" {
 							if message.Floor - elev[i].floorNum >= 0 && message.Floor - elev[i].floorNum < bestFloor {
 								bestFloor = message.Floor - elev[i].floorNum
 								bestElev = i
@@ -87,6 +91,12 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 						commanderChan <- message
 					}
 				}
+
+				if message.Content == "inside" && elev[message.From].state == "Idle" {
+					message.To = message.From
+					message.Type = "newTarget"
+					commanderChan <- message
+				}	
 
 				switch{
 				case message.Content == "inside":
@@ -105,7 +115,7 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 
 
 			case message.Type == "deleteOrder":
-				Println(message)
+				Println(message.Type, message.Floor, message.From)
 				switch{
 				case message.Content == "inside":
 					inside[message.Floor] = 0
@@ -126,52 +136,56 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 				commanderChan <- message
 
 			case message.Type == "floorUpdate":
-				Println(message)
+				Println(message.Type, message.Floor, message.From)
 				elev[message.From].floorNum = message.Floor
 
 			case message.Type == "floorReached":
-				Println(message)
-				message.Type = "floorUpdate"
-				commanderChan <- message
-				elev[message.From].floorNum = message.Floor
-				if elev[message.From].floorTarget == message.Floor || inside[message.Floor] == 1 || outUp[message.Floor] == 1 && elev[message.From].state == "MovingUp" || outDown[message.Floor] == 1 && elev[message.From].state == "MovingDown"{
-					message.Type = "command"
-					message.Content = "stop"
+				Println(message.Type, message.Floor, message.From)
+				if message.From == 0 || message.From > len(elev) - 1 {
 					commanderChan <- message
-					message.Type = "deleteOrder"
-					if inside[message.Floor] == 1 {
-						message.Content = "inside"
-						commanderChan <- message
-					}
-					if outUp[message.Floor] == 1 {
-						message.Content = "outsideUp"
-						commanderChan <- message
-					}
-					if outDown[message.Floor] == 1 {
-						message.Content = "outsideDown"
-						commanderChan <- message
-					}
-					if elev[message.From].floorTarget == message.Floor {	
-						message.Type = "targetUpdate"
-						message.Floor = 0
-						commanderChan <- message
-					}
-					break
-				}
-				emptyQueue := true
-				for i := 1; i < FLOOR_COUNT + 1; i++ {
-					if inside[i] == 1 || outDown[i] == 1 || outUp[i] == 1 {
-						emptyQueue = false
-					}
-				}
-				if emptyQueue == true {
-					message.Type = "command"
-					message.Content = "stop"
+				} else {
+					message.Type = "floorUpdate"
 					commanderChan <- message
+					elev[message.From].floorNum = message.Floor
+					if elev[message.From].floorTarget == message.Floor || inside[message.Floor] == 1 || outUp[message.Floor] == 1 && elev[message.From].state == "MovingUp" || outDown[message.Floor] == 1 && elev[message.From].state == "MovingDown"{
+						message.Type = "command"
+						message.Content = "stop"
+						commanderChan <- message
+						message.Type = "deleteOrder"
+						if inside[message.Floor] == 1 {
+							message.Content = "inside"
+							commanderChan <- message
+						}
+						if outUp[message.Floor] == 1 {
+							message.Content = "outsideUp"
+							commanderChan <- message
+						}
+						if outDown[message.Floor] == 1 {
+							message.Content = "outsideDown"
+							commanderChan <- message
+						}
+						if elev[message.From].floorTarget == message.Floor {	
+							message.Type = "targetUpdate"
+							message.Floor = 0
+							commanderChan <- message
+						}
+						break
+					}
+					emptyQueue := true
+					for i := 1; i < FLOOR_COUNT + 1; i++ {
+						if inside[i] == 1 || outDown[i] == 1 || outUp[i] == 1 {
+							emptyQueue = false
+						}
+					}
+					if emptyQueue == true {
+						message.Type = "command"
+						message.Content = "stop"
+						commanderChan <- message
+					}
 				}
 
 			case message.Type == "newTarget":
-				Println(message)
+				Println(message.Type, message.Floor, message.From)
 				message.Type = "targetUpdate"
 				commanderChan <- message
 				message.Type = "command"
@@ -190,10 +204,12 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 				}
 
 			case message.Type == "targetUpdate":
-				Println(message)
+				Println(message.Type, message.Floor, message.From)
 				elev[message.From].floorTarget = message.Floor
 
 			case message.Type == "stateUpdate":
+				Println(message.Type, message.Content, message.From)
+				
 				elev[message.From].state = message.Content
 				insideQueueEmpty := true
 				if elev[message.From].state == "Idle" && message.To == message.From {
