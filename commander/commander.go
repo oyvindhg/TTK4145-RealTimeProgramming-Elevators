@@ -8,24 +8,28 @@ import (
 
 func CommanderInit(networkSend chan Message, commanderChan chan Message, aliveChan chan Message, tickerChan chan Message, timerChan chan Message, timeOutChan chan Message, driverOutChan chan Message, driverInChan chan Message, failureChan chan Message, cancelMasterChan chan Message) {
 	
-	go commander(commanderChan, networkSend, driverOutChan, driverInChan, timerChan, cancelMasterChan)
-	go masterAliveHandler(tickerChan, timerChan, aliveChan, failureChan)
+	go commander(commanderChan, networkSend, driverOutChan, driverInChan, timerChan, cancelMasterChan, failureChan)
+	go masterAliveHandler(networkSend, tickerChan, timerChan, aliveChan)
 	go doorTimeOutHandler(timeOutChan, driverInChan, networkSend)
 	go driverOutputHandler(driverOutChan, driverInChan, networkSend, commanderChan)
 	go masterChecker(commanderChan)
 }
 	
-func commander(commanderChan chan Message, networkSend chan Message, driverOutChan chan Message, driverInChan chan Message, timerChan chan Message, cancelMasterChan chan Message) {
+func commander(commanderChan chan Message, networkSend chan Message, driverOutChan chan Message, driverInChan chan Message, timerChan chan Message, cancelMasterChan chan Message, failureChan chan Message) {
 	for {
 		select {
 		case message := <- commanderChan:
+			//Println("COMMANDER", message)
 			switch {
 			case message.Type == "findMaster" || message.Type == "newMaster" || message.Type == "addElev" || message.Type == "deleteOrder" || message.Type == "newTarget" || message.Type == "floorReached" || message.Type == "targetUpdate" || message.Type == "floorUpdate":
-				Println("COMMANDER")
 				networkSend <- message
 
 			case message.Type == "cancelMaster":
 				cancelMasterChan <- message
+
+			case message.Type == "masterNumber":
+				message.Type = "masterOffline"
+				failureChan <- message
 
 			case message.Type == "newOrder":
 				driverOutChan <- message
@@ -104,7 +108,7 @@ func driverOutputHandler(driverOutChan chan Message, driverInChan chan Message, 
 	}
 }
 
-func masterAliveHandler(tickerChan chan Message, timerChan chan Message, aliveChan chan Message, failureChan chan Message) {
+func masterAliveHandler(networkSend chan Message, tickerChan chan Message, timerChan chan Message, aliveChan chan Message) {
 	Sleep(1*Second)
 	notAliveCount := 0
 	message := Message{}
@@ -119,7 +123,7 @@ func masterAliveHandler(tickerChan chan Message, timerChan chan Message, aliveCh
 			if notAliveCount == 5 {
 				message.Type = "masterOffline"
 				Println("\n", "Master is offline!")	
-				failureChan <- message
+				networkSend <- message
 			}
 
 		case <- aliveChan:

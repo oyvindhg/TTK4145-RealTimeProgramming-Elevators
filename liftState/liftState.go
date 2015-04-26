@@ -56,10 +56,25 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 				Println("\n", message.Type, message.Content, "From", message.From, "To", message.To)
 				commanderChan <- message
 
+			case message.Type == "masterOffline":
+				for i := 1; i < ELEV_COUNT + 1; i++ {
+					if elev[i].isMaster {
+						message.Type = "masterNumber"
+						message.Value = i
+						commanderChan <- message
+					}
+				}
+
 			case message.Type == "broadcast":
-				//Println("\n", message.Type, message.Content, "Value =", message.Value, "From", message.From, "To", message.To)
+				Println("\n", message.Type, message.Content, "Value =", message.Value, "From", message.From, "To", message.To)
 				aliveChan <- message
 				
+
+
+
+
+
+
 
 			case message.Type == "newMaster":
 				Println("\n", message.Type, message.Content, "Value =", message.Value, "From", message.From, "To", message.To)
@@ -84,14 +99,16 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 						if i == message.Value {
 							elev[i].isMaster = true
 						} else {
-							if i == message.To {
-								message.Type = "cancelMaster"
-								commanderChan <- message
-							}
 							elev[i].isMaster = false
 						}
 					}
 				}
+
+
+
+
+
+
 
 			case message.Type == "findMaster" || message.Type == "elevOnline":
 				Println("\n", message.Type, message.Content, "Value =", message.Value, "From", message.From, "To", message.To)
@@ -119,13 +136,12 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 						message.Value = i
 						commanderChan <- message
 					}
-					
-					/*for i := 1; i < ELEV_COUNT + 1; i++ {
-						message.Type = "newMaster"
-						message.To = message.From
-						commanderChan <- message
-					}*/
 				}
+
+
+
+
+
 
 			case message.Type == "addElev":
 				Println("\n", message.Type, message.Content, "number", message.Value, "From", message.From, "To", message.To)
@@ -139,6 +155,15 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 					commanderChan <- message
 				}
 
+
+
+
+
+
+
+
+
+
 			case message.Type == "elevOffline":
 				Println("\n", message.Type, message.Content, "Value =", message.Value, "From", message.From, "To", message.To)
 				elev[message.Value].state = "Offline"
@@ -150,13 +175,54 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 							nextMaster = i
 						}
 					}
-					Println("Nextmaster = ", nextMaster)
 					message.Value = nextMaster
 					message.Type = "newMaster"
 					message.To = 0
-					Println("Sending newMaster")
 					commanderChan <- message
 				}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 			case message.Type == "newOrder":
 				Println("\n", message.Type, message.Content, "Floor =", message.Floor, "From", message.From, "To", message.To)

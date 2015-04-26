@@ -13,20 +13,20 @@ import(
 
 func main(){
 
-	fileInChan := make(chan Message)
-	fileOutChan := make(chan Message)
-	mainWaitChan := make(chan Message)
+	fileInChan := make(chan Message, 10)
+	fileOutChan := make(chan Message, 10)
+	mainWaitChan := make(chan Message, 10)
 	networkSend := make(chan Message, 10)
 	networkReceive := make(chan Message, 10)
-	cancelMasterChan := make(chan Message)
+	cancelMasterChan := make(chan Message, 10)
 	commanderChan := make(chan Message, 10)
 	driverOutChan := make(chan Message, 10)
 	driverInChan := make(chan Message, 10)
-	aliveChan := make(chan Message)
-	timerChan := make(chan Message)
-	tickerChan := make(chan Message)
-	timeOutChan := make(chan Message)
-	failureChan := make(chan Message)
+	aliveChan := make(chan Message, 10)
+	timerChan := make(chan Message, 10)
+	tickerChan := make(chan Message, 10)
+	timeOutChan := make(chan Message, 10)
+	failureChan := make(chan Message, 10)
 	
 	if !DriverInit(driverOutChan, driverInChan){
 		Println("\n", "Driver init failed!")

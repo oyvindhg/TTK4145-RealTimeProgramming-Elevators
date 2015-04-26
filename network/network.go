@@ -49,9 +49,10 @@ func NetworkInit(networkReceive chan Message, networkSend chan Message, fileOutC
 		message.Value = i
 		fileInChan <- message
 		message = <- fileOutChan
-		if message.Content != "noIP" {
+		if message.Content != "noIP" && message.Content != "" {
 			fileEmpty = false
 			IPlist[i] = message.Content
+			Println("Added IP to IPlist", IPlist[i])
 		}
 	}
 	go networkReceiver(networkSend, networkReceive, receivedChannel, fileInChan, fileEmpty, &IPlist)
@@ -106,7 +107,6 @@ func send(message Message, IPlist[] string, networkSend chan Message, failureCha
 			return
 		}
 	}
-	Println(message)
 	dialAddress := recipient
 	connection, error := net.DialTimeout("tcp", TrimRight(dialAddress, "offline")+ PORT, Duration(100)*Millisecond)
 	if error != nil {
@@ -118,6 +118,7 @@ func send(message Message, IPlist[] string, networkSend chan Message, failureCha
 			Println("\n", "Send connection error: ", error)
 			message.Type = "connectionFailure"
 			message.Content = recipient
+			message.Value = message.To
 			failureChan <- message
 			return
 		}
@@ -152,6 +153,9 @@ func networkSender(networkSend chan Message, failureChan chan Message, fileEmpty
 				} else {
 					message.To = 0
 				}
+			case message.Type == "masterOffline":
+				message.To = -2
+
 			case message.Type == "addElev":
 				message.Content = (*IPlist)[message.Value]
 
@@ -187,7 +191,6 @@ func networkReceiver(networkSend chan Message, networkReceive chan Message, rece
 			switch{
 			case message.Type == "broadcast":
 				if Contains((*IPlist)[message.From], "offline") {
-					Println("RESOLVING AND STUFF", message)
 					message.Type = "elevOnline"
 					message.To = 0
 					message.Value = message.From
@@ -278,11 +281,9 @@ func failureHandler(networkSend chan Message, failureChan chan Message, IPlist *
 			case message.Type == "masterOffline":
 				message.Type = "elevOffline"
 				message.Content = (*IPlist)[1]
-				message.Value = 1
 				message.To = 0
 			case message.Type == "connectionFailure":
 				message.Type = "elevOffline"
-				message.Value = message.To
 				message.To = 0
 			}
 			Println("\n", "FailureHandler:", message.Type, message.Content, "number = ", message.Value)
