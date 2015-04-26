@@ -19,6 +19,7 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 	inside 	:= make([]int, FLOOR_COUNT+1)
 	outUp 	:= make([]int, FLOOR_COUNT+1)
 	outDown	:= make([]int, FLOOR_COUNT+1)
+	priority := make([]int, FLOOR_COUNT+1)
 
 	message.Type = "findMaster"
 	commanderChan <- message
@@ -164,13 +165,9 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 					bestFloor := FLOOR_COUNT
 					bestElev := 0
 					for i := 1; i < len(elev); i++ {
-						if message.Floor == FLOOR_COUNT && elev[i].floorNum == FLOOR_COUNT-1 && elev[i].state == "MovingUp"{
-							break
-						} else if message.Floor == 1 && elev[i].floorNum == 2 && elev[i].state == "MovingDown"{
-							break
-						} else if message.Floor - elev[i].floorNum == 1 && elev[i].state == "MovingUp"{
-							break
-						} else if message.Floor - elev[i].floorNum == -1 && elev[i].state == "MovingDown"{
+						
+						if elev[i].state == "Open" && message.Floor == elev[i].floorNum{
+							bestElev = i
 							break
 						}
 						if elev[i].state == "Idle" {
@@ -181,8 +178,23 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 								bestFloor = elev[i].floorNum - message.Floor
 								bestElev = i
 							}
-						}	
+						}
 					}
+					for i := 1; i < len(elev); i++ {
+						if message.Floor == FLOOR_COUNT && elev[i].floorNum >= FLOOR_COUNT-bestFloor && elev[i].state == "MovingUp"{
+								bestElev = 0
+								break
+							} else if message.Floor == 1 && elev[i].floorNum <= bestFloor && elev[i].state == "MovingDown"{
+								bestElev = 0
+								break
+							} else if message.Floor - elev[i].floorNum <= bestFloor && elev[i].state == "MovingUp"{
+								bestElev = 0
+								break
+							} else if message.Floor - elev[i].floorNum <= -bestFloor && elev[i].state == "MovingDown"{
+								bestElev = 0
+								break
+							}
+						}
 					if bestElev != 0 {
 						message.To = bestElev
 						message.Type = "newTarget"
