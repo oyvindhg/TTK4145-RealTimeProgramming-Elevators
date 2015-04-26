@@ -8,9 +8,9 @@ import (
 	."encoding/json"
 )
 
-const ELEV_COUNT = 4
+const ELEV_COUNT = 3
 const FLOOR_COUNT = 4
-const MASTER_INIT_IP = "129.241.187.156"
+const MASTER_INIT_IP = "129.241.187.161"
 const PORT = ":12345"
 
 type Message struct {
@@ -40,6 +40,7 @@ func NetworkInit(networkReceive chan Message, networkSend chan Message, fileOutC
 			}
 		}
 	}
+	/*
 	for i := 1; i < ELEV_COUNT + 1; i++ {
 		message.Type = "readIP"
 		message.Value = i
@@ -49,7 +50,7 @@ func NetworkInit(networkReceive chan Message, networkSend chan Message, fileOutC
 			fileEmpty = false
 			IPlist[i] = message.Content
 		}
-	}
+	}*/
 	if fileEmpty && IPlist[0] == MASTER_INIT_IP {
 		message.Type = "master"
 		message.To = -2
@@ -143,6 +144,7 @@ func networkSender(networkSend chan Message, failureChan chan Message, fileEmpty
 					}
 				}
 				if message.Floor == -2 {
+					message.Floor = 0
 					message.To = -2
 					go send(message, *IPlist, networkSend, failureChan)
 				}
@@ -165,7 +167,9 @@ func send(message Message, IPlist[] string, networkSend chan Message, failureCha
 	case message.To > 0:
 		recipient = IPlist[message.To]
 		if recipient == "" || Contains(recipient, "offline") {
-			Println("Recipient", message.To, "offline!")
+			if message.Type != "imAlive" {
+				Println("Could not send to recipient", message.To)
+			}
 			return
 		}
 	}
@@ -195,9 +199,9 @@ func networkReceiver(networkReceive chan Message, receivedChannel chan Message, 
 			switch{
 			case message.Type == "addElev":
 				(*IPlist)[message.Value] = message.Content
-				message.Type = "writeIP"
-				fileInChan <- message
-				message.Type = "addElev"
+				//message.Type = "writeIP"
+				//fileInChan <- message
+				//message.Type = "addElev"
 
 			case message.Type == "elevOnline":
 				(*IPlist)[message.Value] = TrimRight((*IPlist)[message.Value], "offline")

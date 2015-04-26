@@ -98,7 +98,7 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 				}
 
 			case message.Type == "newOrder":
-				Println(message.Type, message.Content, "Value =", message.Value, "From:", message.From, "To:", message.To)
+				Println(message.Type, message.Content, "Floor =", message.Floor, "From:", message.From, "To:", message.To)
 				if message.To == 1 {
 					bestFloor := FLOOR_COUNT
 					bestElev := 0
@@ -152,7 +152,7 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 
 
 			case message.Type == "deleteOrder":
-				Println("Liftstate:", message.Type, "Floor:", message.Floor, "From:", message.From)
+				Println(message.Type, message.Content, "Floor =", message.Floor, "From:", message.From, "To:", message.To)
 				switch{
 				case message.Content == "inside":
 					inside[message.Floor] = 0
@@ -173,10 +173,11 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 				commanderChan <- message
 
 			case message.Type == "floorUpdate":
-				Println("Liftstate:", message.Type, "Floor:", message.Floor, "From:", message.From)
+				Println(message.Type, message.Content, "Floor =", message.Floor, "From:", message.From, "To:", message.To)
 				elev[message.From].floorNum = message.Floor
 
 			case message.Type == "floorReached":
+				Println(message.Type, message.Content, "Floor =", message.Floor, "From:", message.From, "To:", message.To)
 				if message.From == 0 || message.From > len(elev) - 1 {
 					commanderChan <- message
 				} else {
@@ -221,7 +222,7 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 				}
 
 			case message.Type == "newTarget":
-				Println("Liftstate:", message.Type, "Floor:", message.Floor, "From:", message.From)
+				Println(message.Type, message.Content, "Floor =", message.Floor, "From:", message.From, "To:", message.To)
 				message.Type = "targetUpdate"
 				commanderChan <- message
 				message.Type = "command"
@@ -240,14 +241,14 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 				}
 
 			case message.Type == "targetUpdate":
-				Println("Liftstate:", message.Type, "Floor:", message.Floor, "From:", message.From)
+				Println(message.Type, message.Content, "Floor =", message.Floor, "From:", message.From, "To:", message.To)
 				elev[message.From].floorTarget = message.Floor
 
 			case message.Type == "stateUpdate":
-				if message.From == 0 || message.From > len(elev) - 1 || message.Content == "stop" {
+				Println(message.Type, message.Content, "From:", message.From, "To:", message.To)
+				if message.From == 0 {
 					break
 				} else {
-					Println("Liftstate:", message.Type, message.Content, "From:", message.From)
 					elev[message.From].state = message.Content
 					insideQueueEmpty := true
 					if elev[message.From].state == "Idle" && message.To == message.From {
