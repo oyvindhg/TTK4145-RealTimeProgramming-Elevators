@@ -43,7 +43,7 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 		} else {
 			elev[i].isMaster = false
 		}
-		elev[i].state = "Offline"
+		elev[i].state = "Uninitialized"
 		elev[i].floorTarget = 0
 		elev[i].floorNum = 0
 	}
@@ -62,8 +62,10 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 			case message.Type == "newMaster":
 				Println("\n", message.Type, message.Content, "Value =", message.Value, "From", message.From, "To", message.To)
 
-			case message.Type == "findMaster":
+			case message.Type == "findMaster" || message.Type == "elevOnline":
 				Println("\n", message.Type, message.Content, "Value =", message.Value, "From", message.From, "To", message.To)
+				elev[message.Value].state = "Idle"
+				Println("\n", elev)
 				if elev[message.To].isMaster {
 					for i := 1; i < ELEV_COUNT + 1; i++ {
 						if elev[i].state == "Offline" {
@@ -71,13 +73,9 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 							break
 						}
 					}
-					elev[message.Value].state = "Idle"
-					Println("\n", elev)
-					
 					message.Type = "addElev"
 					message.To = 0
 					commanderChan <- message
-					
 					
 					message.To = message.Value
 					for i := 1; i < message.Value; i++ {

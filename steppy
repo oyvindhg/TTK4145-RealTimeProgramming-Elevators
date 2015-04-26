@@ -22,7 +22,7 @@ findMaster -> send
 findMaster -> Receiver
 findMaster -> master liftstate
 elev[message.To] == master
-message.Floor == -1
+master == offline
 message.Value = 1
 
 addElev -> commander
