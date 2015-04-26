@@ -3,7 +3,6 @@ package fileManager
 import (
 	"os"
 	."fmt"
-	//"bufio"
     "strings"
     "strconv"
     "io/ioutil"
@@ -15,30 +14,29 @@ func FileManager(fileOutChan chan Message, fileInChan chan Message) {
 		select {
 		case message := <- fileInChan:
 			switch{
-				case message.Type == "writeIP":
-					message.Content = strings.TrimRight(message.Content, "offline")
-					writeIP(message.Content)
-				case message.Type == "writeInside":
-					writeInside(message.Floor, message.Value)
-				case message.Type == "readIP":
-					IPs := readIP()
-					if message.Value < len(IPs) {
-						message.Content = IPs[message.Value]
-						fileOutChan <- message
-					} else {
-						message.Content = "noIP"
-						fileOutChan <- message
-					}
-				case message.Type == "readInside":
-					inside := readInside()
-					//Println("\n", inside)
-					if message.Floor < len(inside) {
-						message.Value = inside[message.Floor]
-						fileOutChan <- message
-					} else {
-						message.Value = -1
-						fileOutChan <- message
-					}
+			case message.Type == "writeIP":
+				message.Content = strings.TrimRight(message.Content, "offline")
+				writeIP(message.Content, message.Value - 1)
+			case message.Type == "writeInside":
+				writeInside(message.Floor, message.Value)
+			case message.Type == "readIP":
+				IPs := readIP()
+				if message.Value < len(IPs) {
+					message.Content = IPs[message.Value]
+					fileOutChan <- message
+				} else {
+					message.Content = "noIP"
+					fileOutChan <- message
+				}
+			case message.Type == "readInside":
+				inside := readInside()
+				if message.Floor < len(inside) {
+					message.Value = inside[message.Floor]
+					fileOutChan <- message
+				} else {
+					message.Value = -1
+					fileOutChan <- message
+				}
 			}
 		}
 	}
@@ -51,15 +49,13 @@ func readInside() []int{
         Println("\n", err)
         os.Exit(1)
     }
-
 	content, err := ioutil.ReadFile(directory + "/insideOrders.txt")
 	inside := []int{0,0,0,0,0}
 	if err != nil {
-    	Println("\n", "Created new insideOrders.txt")
 
 		f, err := os.Create(directory + "/insideOrders.txt")
     	if err != nil {
-		    Println("\n", "Could not open file location!")
+		    Println("\n", "Could not open file location.")
 		}
 		strOrders := ""
 
@@ -72,12 +68,10 @@ func readInside() []int{
 
     	_, err = f.WriteString(strOrders)
     	if err != nil {
-		    Println("\n", "Error while writing to file!")
+		    Println("\n", "Error while writing to file.")
 		}
 
-    	// Issue a `Sync` to flush writes to stable storage.
     	f.Sync()
-
     	return inside
 	}
 	strOrders := strings.Split(string(content), "\t")
@@ -101,11 +95,9 @@ func writeInside(floor int, value int){
 
 	f, err := os.Create(directory + "/insideOrders.txt")
 	if err != nil {
-	    Println("\n", "Could not open file location!")
+	    Println("\n", "Could not open file location.")
 	}
-
 	tempInside[floor] = value;
-
 	strOrders := ""
 
 	for i := range tempInside{
@@ -114,13 +106,11 @@ func writeInside(floor int, value int){
 			strOrders += "\t"
 		}
 	}
-
 	_, err = f.WriteString(strOrders)
 	if err != nil {
-	    Println("\n", "Error while writing to file!")
+	    Println("\n", "Error while writing to file.")
 	}
 
-	// Issue a `Sync` to flush writes to stable storage.
 	f.Sync()
 }
 
@@ -133,37 +123,31 @@ func readIP() []string{
         Println("\n", err)
         os.Exit(1)
     }
-
 	content, err := ioutil.ReadFile(directory + "/IP.txt")
 	IPs := []string{}
 
 	if err != nil {
-	    Println("\n", "Created new IP.txt")
 
 		f, err := os.Create(directory + "/IP.txt")
     	if err != nil {
-		    Println("\n", "Could not open file location!")
+		    Println("\n", "Could not open file location.")
 		}
 
-    	// Issue a `Sync` to flush writes to stable storage.
     	f.Sync()
-
     	return IPs
-
 	} else {
-
 		IPs = append(IPs, "")
 		IPs = append(IPs, strings.Split(string(content), "\n")...)
-
 		return IPs
 	}
 }
 
 
-func writeIP(IP string){
+func writeIP(IP string, position int){
 
-	tempIPs := readIP()
+	tempIPs := make([]string, ELEV_COUNT + 1)
 
+	tempIPs2 := readIP()
 	directory, err := os.Getwd()
     if err != nil {
         Println("\n", err)
@@ -172,21 +156,21 @@ func writeIP(IP string){
 
 	f, err := os.Create(directory + "/IP.txt")
 	if err != nil {
-	    Println("\n", "Could not open file location!")
+	    Println("\n", "Could not open file location.")
+	}
+	indexRange := 0
+	if len(tempIPs) > len(tempIPs2) {
+		indexRange = len(tempIPs2)
+	} else {
+		indexRange = len(tempIPs)
 	}
 
-	newIP := true
-
-	for i := range tempIPs{
-		if IP == tempIPs[i]{
-			newIP = false
-		}
+	for i := 0; i < indexRange; i++ {
+		tempIPs[i] = tempIPs2[i]
 	}
-
-	if newIP {
-		tempIPs = append(tempIPs, IP)
+	if position < ELEV_COUNT + 1 {
+		tempIPs[position] = IP
 	}
-
 	strIPs := ""
 
 	for i := range tempIPs{
@@ -199,9 +183,8 @@ func writeIP(IP string){
 
 	_, err = f.WriteString(strIPs)
 	if err != nil {
-	    Println("\n", "Error while writing to file!")
+	    Println("\n", "Error while writing to file.")
 	}
 
-	// Issue a `Sync` to flush writes to stable storage.
 	f.Sync()
 }

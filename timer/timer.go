@@ -1,7 +1,6 @@
 package timer
 
 import (
-	//."fmt"
 	."time"
 	."../network"
 )

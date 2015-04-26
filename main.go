@@ -2,7 +2,6 @@ package main
 
 import(
 	."fmt"
-	."time"
 	."./timer"
 	."./driver"
 	."./network"
@@ -37,62 +36,8 @@ func main(){
 	go NetworkInit(networkReceive, networkSend, fileOutChan, fileInChan, failureChan)
 	go LiftState(networkReceive, commanderChan, aliveChan, fileOutChan, fileInChan)
 	go CommanderInit(networkSend, commanderChan, aliveChan, tickerChan, timerChan, timeOutChan, driverOutChan, driverInChan, failureChan, cancelMasterChan)
-	Println("\n\n\n          --------------------\n          |                  |\n          |   Initializing   |\n          |                  |\n          --------------------\n\n\n")
-	Sleep(1050*Millisecond)
-	Println("\n\n\n          --------------------\n          |                  |\n          |       DONE       |\n          |                  |\n          --------------------\n\n\n")
 
 	select{
 		case <- mainWaitChan:
 	}
 }
-
-
-/*
-
------------------------------           TO DO           -------------------------------------
-
-KOSTFUNKSJON
-
-Mangler en funksjonalitet for newOrder kostfunksjon for moving states
-
-						MÅ ORDNES			Folk kan fucke med en stakkar i 4. etasje pga inside orders prioritet
-
-Kanskje legge til en teller? BRUTE FORCE
-
-Under utregning kan states og retning og floorNum få prioritetutdeling
-
-Heisen går noen ganger helt feil retning enn det den skal
-
-
-
-NETTVERK
-
-Fiks at message.To ikke blir satt i networkSender hvis det ikke trengs
-
-Enum for message.To osv
-
-LEGG TIL ORDREPAKKE UNDER FINDMASTER I LIFTSTATE
-
-
-
-
-
-NB! Vi antar at vi alltid kan starte alle tre heisene mens master er i live
-
-NB! Sjekk om elevOffline kan sendes etter evelOnline under oppstart
-
-NB! Antar ingen nettverksoppdeling
-
-NB! Når ordre for en heis i 4. etasje bestilles opp fra 3. og så 2. til tom kø
-	vil den ikke kjøre ned til 2. etasje først, men fikse kun 3. etasje og går ut ifra
-	at de andre heisene fikser duden i 2. etasje
-
-NB! Mulig deadlock / endless go routine spawn i elevOffline network send
-
-Message
-Type, Content, Floor, Value, To, From 
-
-Type: "imAlive", "newElev", "newOrder", "deleteOrder", "newTarget", 
-      "stateUpdate", "offline", "command", "floorReached", "signal"
-
-*/

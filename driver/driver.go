@@ -31,7 +31,6 @@ func DriverInit(driverOutChan chan Message, driverInChan chan Message) (bool) {
 		}
 		elevSetButtonLamp("inside", floor, 0)
 	}
-
 	elevSetStopLamp(0)
 	elevSetEngineSpeed("stop")
 	elevSetDoorOpenLamp(0)

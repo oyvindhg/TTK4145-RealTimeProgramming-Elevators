@@ -1,7 +1,6 @@
 package commander
 
 import (
-	."fmt"
 	."time"
 	."../network"
 )
@@ -19,7 +18,6 @@ func commander(commanderChan chan Message, networkSend chan Message, driverOutCh
 	for {
 		select {
 		case message := <- commanderChan:
-			//Println("COMMANDER", message)
 			switch {
 			case message.Type == "findMaster" || message.Type == "newMaster" || message.Type == "addElev" || message.Type == "deleteOrder" || message.Type == "newTarget" || message.Type == "floorReached" || message.Type == "targetUpdate" || message.Type == "floorUpdate":
 				networkSend <- message
@@ -41,15 +39,15 @@ func commander(commanderChan chan Message, networkSend chan Message, driverOutCh
 				if message.Content == "up" {
 					message.Type = "stateUpdate"
 					message.Content = "MovingUp"
-					//Println("\n", message)
 					networkSend <- message
 					message.Content = "up"
+
 				} else if message.Content == "down" {
 					message.Type = "stateUpdate"
 					message.Content = "MovingDown"
-					//Println("\n", message)
 					networkSend <- message
 					message.Content = "down"
+
 				} else if message.Content == "stop" {
 					message.Type = "door"
 					message.Content = "Second"
@@ -80,7 +78,6 @@ func doorTimeOutHandler(timeOutChan chan Message, driverInChan chan Message, net
 
 			message.Type = "stateUpdate"
 			message.Content = "Idle"
-			//Println("\n", message)
 			networkSend <- message
 		}
 	}
@@ -122,10 +119,8 @@ func masterAliveHandler(networkSend chan Message, tickerChan chan Message, timer
 			notAliveCount++
 			if notAliveCount == 5 {
 				message.Type = "masterOffline"
-				Println("\n", "Master is offline!")	
 				networkSend <- message
 			}
-
 		case <- aliveChan:
 			notAliveCount = 0
 		}
@@ -136,11 +131,9 @@ func masterBroadcast(networkSend chan Message, cancelMasterChan chan Message) {
 	message := Message{}
 	message.Type = "broadcast"
 	message.To = 0
-	Println("\n", "Initiating masterBroadcast")
 	for {
 		select {
 		case <- cancelMasterChan:
-			Println("\n\n\n\n\nCANCELING MASTER MOAHAHAHAHAHHHH\n\n\n\n\n")
 			return
 		default:
 			networkSend <- message
