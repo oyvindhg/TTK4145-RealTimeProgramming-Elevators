@@ -1,6 +1,7 @@
 package commander
 
 import (
+	."fmt"
 	."time"
 	."../network"
 )
@@ -119,6 +120,7 @@ func masterAliveHandler(networkSend chan Message, tickerChan chan Message, timer
 			notAliveCount++
 			if notAliveCount == 5 {
 				message.Type = "masterOffline"
+				Println("\n", "Master is offline.")	
 				networkSend <- message
 			}
 		case <- aliveChan:
@@ -131,6 +133,7 @@ func masterBroadcast(networkSend chan Message, cancelMasterChan chan Message) {
 	message := Message{}
 	message.Type = "broadcast"
 	message.To = 0
+	Println("\n", "Initiating masterBroadcast.")
 	for {
 		select {
 		case <- cancelMasterChan:

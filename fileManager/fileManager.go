@@ -52,6 +52,7 @@ func readInside() []int{
 	content, err := ioutil.ReadFile(directory + "/insideOrders.txt")
 	inside := []int{0,0,0,0,0}
 	if err != nil {
+    	Println("\n", "Created new insideOrders.txt.")
 
 		f, err := os.Create(directory + "/insideOrders.txt")
     	if err != nil {
@@ -127,6 +128,7 @@ func readIP() []string{
 	IPs := []string{}
 
 	if err != nil {
+	    Println("\n", "Created new IP.txt.")
 
 		f, err := os.Create(directory + "/IP.txt")
     	if err != nil {

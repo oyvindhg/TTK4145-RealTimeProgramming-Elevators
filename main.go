@@ -2,6 +2,7 @@ package main
 
 import(
 	."fmt"
+	."time"
 	."./timer"
 	."./driver"
 	."./network"
@@ -36,6 +37,9 @@ func main(){
 	go NetworkInit(networkReceive, networkSend, fileOutChan, fileInChan, failureChan)
 	go LiftState(networkReceive, commanderChan, aliveChan, fileOutChan, fileInChan)
 	go CommanderInit(networkSend, commanderChan, aliveChan, tickerChan, timerChan, timeOutChan, driverOutChan, driverInChan, failureChan, cancelMasterChan)
+	Println("\n\n\n          --------------------\n          |                  |\n          |   Initializing   |\n          |                  |\n          --------------------\n\n\n")
+	Sleep(1050*Millisecond)
+	Println("\n\n\n          --------------------\n          |                  |\n          |       DONE       |\n          |                  |\n          --------------------\n\n\n")
 
 	select{
 		case <- mainWaitChan:
