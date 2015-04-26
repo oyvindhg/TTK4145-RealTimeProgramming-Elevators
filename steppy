@@ -1,0 +1,53 @@
+networkInit
+
+IPlist[0] = ownIP
+fileEmpty = true
+fileEmpty && MASTER_INIT_IP == true
+message.To = localhost
+go startAliveBroadcast
+master -> Sender
+master -> master liftstate
+master -> master commander
+go masterAliveBroadcast
+imAlive -> all every 1 sec
+
+liftStateInit
+
+findMaster -> commander
+findMaster -> Sender
+message.Content = IPlist[0]
+message.From = 0
+message.To = -1
+findMaster -> send
+findMaster -> Receiver
+findMaster -> master liftstate
+elev[message.To] == master
+message.Floor == -1
+message.Value = 1
+
+addElev -> commander
+addElev -> Sender
+message.Floor == -2
+message.To = localhost
+addElev -> send
+addElev -> Receiver
+IPlist[1 (Value)] = message.Content
+writeIP -> filemanager
+addElev -> liftstate
+elev[1 (Value)].state = "Idle"
+
+
+
+
+
+må ha message.To i:
+
+liftstate newtarget, addElev, deleteorder, command, newMaster, master
+
+
+må ha message.Value i:
+
+liftstate newMaster, addElev,
+
+
+fix for løkka i findMaster i liftstate
