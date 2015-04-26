@@ -47,36 +47,45 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 		elev[i].floorTarget = 0
 		elev[i].floorNum = 0
 	}
-	Println("LiftStateInit done")
+
 	for {
 		select {
 		case message = <- networkReceive:
 			switch {
 			case message.Type == "command" || message.Type == "master":
-				Println(message.Type, message.Content, "From:", message.From, "To:", message.To)
+				Println("\n", message.Type, message.Content, "From", message.From, "To", message.To)
 				commanderChan <- message
 
 			case message.Type == "imAlive":
 				aliveChan <- message
 
 			case message.Type == "newMaster":
-				Println(message.Type, message.Content, "Value =", message.Value, "From:", message.From, "To:", message.To)
+				Println("\n", message.Type, message.Content, "Value =", message.Value, "From", message.From, "To", message.To)
 
 			case message.Type == "findMaster":
-				Println(message.Type, message.Content, "Value =", message.Value, "From:", message.From, "To:", message.To)
+				Println("\n", message.Type, message.Content, "Value =", message.Value, "From", message.From, "To", message.To)
 				if elev[message.To].isMaster {
-					if message.Floor == -1 {
-						for i := 1; i < ELEV_COUNT + 1; i++ {
-							if elev[i].state == "Offline" {
-								message.Value = i
-								break
-							}
+					for i := 1; i < ELEV_COUNT + 1; i++ {
+						if elev[i].state == "Offline" {
+							message.Value = i
+							break
 						}
+					}
+					elev[message.Value].state = "Idle"
+					Println("\n", elev)
+					
+					message.Type = "addElev"
+					message.To = 0
+					commanderChan <- message
+					
+					
+					message.To = message.Value
+					for i := 1; i < message.Value; i++ {
 						message.Type = "addElev"
+						message.Value = i
 						commanderChan <- message
 					}
-
-
+					
 					/*for i := 1; i < ELEV_COUNT + 1; i++ {
 						message.Type = "newMaster"
 						message.To = message.From
@@ -85,20 +94,27 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 				}
 
 			case message.Type == "addElev":
-				Println(message.Type, message.Content, "Value =", message.Value, "From:", message.From, "To:", message.To)
+				Println("\n", message.Type, message.Content, "number", message.Value, "From", message.From, "To", message.To)
 				elev[message.Value].state = "Idle"
+				Println("\n", elev)
+				if message.Value == message.To {
+					message.Type = "floorUpdate"
+					message.Floor = elev[0].floorNum
+					commanderChan <- message
+				}
 
 			case message.Type == "elevOffline":
-				Println(message.Type, message.Content, "Value =", message.Value, "From:", message.From, "To:", message.To)
+				Println("\n", message.Type, message.Content, "Value =", message.Value, "From", message.From, "To", message.To)
 				elev[message.Value].state = "Offline"
+				Println("\n", elev)
 				if message.Value == 1 && message.To == len(elev) - 1{
-					Println("I am to be the new master")
+					Println("\n", "I am to be the new master")
 					message.Type = "master"
 					commanderChan <- message
 				}
 
 			case message.Type == "newOrder":
-				Println(message.Type, message.Content, "Floor =", message.Floor, "From:", message.From, "To:", message.To)
+				Println("\n", message.Type, message.Content, "Floor =", message.Floor, "From", message.From, "To", message.To)
 				if message.To == 1 {
 					bestFloor := FLOOR_COUNT
 					bestElev := 0
@@ -152,7 +168,7 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 
 
 			case message.Type == "deleteOrder":
-				Println(message.Type, message.Content, "Floor =", message.Floor, "From:", message.From, "To:", message.To)
+				Println("\n", message.Type, message.Content, "Floor =", message.Floor, "From", message.From, "To", message.To)
 				switch{
 				case message.Content == "inside":
 					inside[message.Floor] = 0
@@ -173,56 +189,53 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 				commanderChan <- message
 
 			case message.Type == "floorUpdate":
-				Println(message.Type, message.Content, "Floor =", message.Floor, "From:", message.From, "To:", message.To)
+				Println("\n", message.Type, message.Content, "Floor =", message.Floor, "From", message.From, "To", message.To)
 				elev[message.From].floorNum = message.Floor
 
 			case message.Type == "floorReached":
-				Println(message.Type, message.Content, "Floor =", message.Floor, "From:", message.From, "To:", message.To)
-				if message.From == 0 || message.From > len(elev) - 1 {
+				Println("\n", message.Type, message.Floor)
+				message.Type = "floorUpdate"
+				message.To = 0
+				commanderChan <- message
+				elev[message.From].floorNum = message.Floor
+				if elev[message.From].floorTarget == message.Floor || inside[message.Floor] == 1 || outUp[message.Floor] == 1 && elev[message.From].state == "MovingUp" || outDown[message.Floor] == 1 && elev[message.From].state == "MovingDown"{
+					message.Type = "command"
+					message.Content = "stop"
 					commanderChan <- message
-				} else {
-					message.Type = "floorUpdate"
-					commanderChan <- message
-					elev[message.From].floorNum = message.Floor
-					if elev[message.From].floorTarget == message.Floor || inside[message.Floor] == 1 || outUp[message.Floor] == 1 && elev[message.From].state == "MovingUp" || outDown[message.Floor] == 1 && elev[message.From].state == "MovingDown"{
-						message.Type = "command"
-						message.Content = "stop"
-						commanderChan <- message
-						message.Type = "deleteOrder"
-						if inside[message.Floor] == 1 {
-							message.Content = "inside"
-							commanderChan <- message
-						}
-						if outUp[message.Floor] == 1 {
-							message.Content = "outsideUp"
-							commanderChan <- message
-						}
-						if outDown[message.Floor] == 1 {
-							message.Content = "outsideDown"
-							commanderChan <- message
-						}
-						if elev[message.From].floorTarget == message.Floor {	
-							message.Type = "targetUpdate"
-							message.Floor = 0
-							commanderChan <- message
-						}
-						break
-					}
-					emptyQueue := true
-					for i := 1; i < FLOOR_COUNT + 1; i++ {
-						if inside[i] == 1 || outDown[i] == 1 || outUp[i] == 1 {
-							emptyQueue = false
-						}
-					}
-					if emptyQueue == true {
-						message.Type = "command"
-						message.Content = "stop"
+					message.Type = "deleteOrder"
+					if inside[message.Floor] == 1 {
+						message.Content = "inside"
 						commanderChan <- message
 					}
+					if outUp[message.Floor] == 1 {
+						message.Content = "outsideUp"
+						commanderChan <- message
+					}
+					if outDown[message.Floor] == 1 {
+						message.Content = "outsideDown"
+						commanderChan <- message
+					}
+					if elev[message.From].floorTarget == message.Floor {	
+						message.Type = "targetUpdate"
+						message.Floor = 0
+						commanderChan <- message
+					}
+					break
+				}
+				emptyQueue := true
+				for i := 1; i < FLOOR_COUNT + 1; i++ {
+					if inside[i] == 1 || outDown[i] == 1 || outUp[i] == 1 {
+						emptyQueue = false
+					}
+				}
+				if emptyQueue == true {
+					message.Type = "command"
+					message.Content = "stop"
+					commanderChan <- message
 				}
 
 			case message.Type == "newTarget":
-				Println(message.Type, message.Content, "Floor =", message.Floor, "From:", message.From, "To:", message.To)
+				Println("\n", message.Type, message.Content, "Floor =", message.Floor, "From", message.From, "To", message.To)
 				message.Type = "targetUpdate"
 				commanderChan <- message
 				message.Type = "command"
@@ -241,11 +254,11 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 				}
 
 			case message.Type == "targetUpdate":
-				Println(message.Type, message.Content, "Floor =", message.Floor, "From:", message.From, "To:", message.To)
+				Println("\n", message.Type, message.Content, "Floor =", message.Floor, "From", message.From, "To", message.To)
 				elev[message.From].floorTarget = message.Floor
 
 			case message.Type == "stateUpdate":
-				Println(message.Type, message.Content, "From:", message.From, "To:", message.To)
+				Println("\n", message.Type, message.Content, "From", message.From, "To", message.To)
 				if message.From == 0 {
 					break
 				} else {

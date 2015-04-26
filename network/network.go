@@ -31,7 +31,7 @@ func NetworkInit(networkReceive chan Message, networkSend chan Message, fileOutC
 	IPlist := make([]string, ELEV_COUNT + 1)
 	addresses, err := net.InterfaceAddrs()
 	if err != nil {
-		Println("Address error: ", err)
+		Println("\n", "Address error: ", err)
 	}
 	for _, address := range addresses {
 		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
@@ -56,10 +56,9 @@ func NetworkInit(networkReceive chan Message, networkSend chan Message, fileOutC
 		message.To = -2
 		go startAliveBroadcast(message, networkSend)
 	}
-	go networkReceiver(networkReceive, receivedChannel, fileInChan, &IPlist)
+	go networkReceiver(networkReceive, receivedChannel, fileInChan, fileEmpty, &IPlist)
 	go networkSender(networkSend, failureChan, fileEmpty, &IPlist)
 	go failureHandler(networkSend, failureChan, &IPlist)
-	Println("NetworkInit done")
 }
 
 func startAliveBroadcast(message Message, networkSend chan Message) {
@@ -70,13 +69,13 @@ func startAliveBroadcast(message Message, networkSend chan Message) {
 func listen(receivedChannel chan Message) {
 	listener, error := net.Listen("tcp", PORT)
 	if error != nil {
-		Println("Listen error: ", error)
+		Println("\n", "Listen error: ", error)
 	}
 	defer listener.Close()
 	for {
 		connection, err := listener.Accept()
 		if error != nil {
-			Println("Listen connection error: ", err)
+			Println("\n", "Listen connection error: ", err)
 		}
 		go receive(connection, receivedChannel)
 	}
@@ -88,12 +87,12 @@ func receive(connection net.Conn, receivedChannel chan Message) {
 	message := Message{}
 	length, error := connection.Read(buffer)
 	if error != nil {
-		Println("Receive connection error: ", error)
+		Println("\n", "Receive connection error: ", error)
 	}
 	err := Unmarshal(buffer[:length], &message)
 	
 	if err != nil {
-		Println("Receive error: ", err)
+		Println("\n", "Receive error: ", err)
 	}
 	receivedChannel <- message
 }
@@ -106,23 +105,24 @@ func networkSender(networkSend chan Message, failureChan chan Message, fileEmpty
 				if (*IPlist)[0] == (*IPlist)[i] {
 					message.From = i
 					break
+				} else {
+					message.From = 0
 				}
 			}
 			switch{					//0 = all, -1 = MASTER_INIT_IP, -2 = localhost
 			case message.Type == "findMaster":
 				message.Content = (*IPlist)[0]
 				if fileEmpty {
-					message.Floor = -1
 					message.To = -1
+					if message.Content == MASTER_INIT_IP {
+						message.Value = 1
+					}
 				} else {
-					message.Floor = 0
 					message.To = 0
 				}
 			case message.Type == "addElev":
-				if message.Floor == -1 {
-					message.Floor = -2
-				} 
-				message.To = 0
+				message.Content = (*IPlist)[message.Value]
+
 			case message.Type == "newMaster":
 				message.To = 0
 			case message.Type == "newOrder" || message.Type == "deleteOrder":
@@ -131,10 +131,13 @@ func networkSender(networkSend chan Message, failureChan chan Message, fileEmpty
 				} else {
 					message.To = 0
 				}
-			case message.Type == "stateUpdate" || message.Type == "targetUpdate" || message.Type == "floorUpdate":
+			case message.Type == "stateUpdate" || message.Type == "targetUpdate":
 				message.To = 0
 			case message.Type == "floorReached":
 				message.To = -2
+			}
+			if message.Type == "addElev" {
+				Println("\n Sending", message)
 			}
 			if message.To == 0 {
 				for i := 1; i < ELEV_COUNT + 1; i++ {
@@ -142,11 +145,6 @@ func networkSender(networkSend chan Message, failureChan chan Message, fileEmpty
 						message.To = i
 						go send(message, *IPlist, networkSend, failureChan)
 					}
-				}
-				if message.Floor == -2 {
-					message.Floor = 0
-					message.To = -2
-					go send(message, *IPlist, networkSend, failureChan)
 				}
 			} else {
 				go send(message, *IPlist, networkSend, failureChan)
@@ -167,9 +165,6 @@ func send(message Message, IPlist[] string, networkSend chan Message, failureCha
 	case message.To > 0:
 		recipient = IPlist[message.To]
 		if recipient == "" || Contains(recipient, "offline") {
-			if message.Type != "imAlive" {
-				Println("Could not send to recipient", message.To)
-			}
 			return
 		}
 	}
@@ -178,7 +173,7 @@ func send(message Message, IPlist[] string, networkSend chan Message, failureCha
 		if message.From == message.To {
 			connection, _ = net.Dial("tcp", "localhost"+ PORT)
 		} else {
-			Println("Send connection error: ", error)
+			Println("\n", "Send connection error: ", error)
 			message.Type = "connectionFailure"
 			message.Content = recipient
 			failureChan <- message
@@ -187,18 +182,31 @@ func send(message Message, IPlist[] string, networkSend chan Message, failureCha
 	}
 	byteMessage, err := Marshal(message)
 	if err != nil {
-		Println("Send error: ", err)
+		Println("\n", "Send error: ", err)
 	}
 	connection.Write(byteMessage)
 }
 
-func networkReceiver(networkReceive chan Message, receivedChannel chan Message, fileInChan chan Message, IPlist *[]string) {
+func networkReceiver(networkReceive chan Message, receivedChannel chan Message, fileInChan chan Message, fileEmpty bool, IPlist *[]string) {
 	for{
 		select{
 		case message := <- receivedChannel:
 			switch{
-			case message.Type == "addElev":
-				(*IPlist)[message.Value] = message.Content
+			case message.Type == "addElev" || message.Type == "findMaster":
+				if message.Value == 0 {
+					for i := 1; i < ELEV_COUNT + 1; i++ {
+						if (*IPlist)[i] == message.Content {
+							break
+						}
+						if (*IPlist)[i] == "" {
+							(*IPlist)[i] = message.Content
+							Println("\n", *IPlist)
+							break
+						}
+					}
+				} else {
+					(*IPlist)[message.Value] = message.Content
+				}
 				//message.Type = "writeIP"
 				//fileInChan <- message
 				//message.Type = "addElev"
@@ -229,7 +237,7 @@ func failureHandler(networkSend chan Message, failureChan chan Message, IPlist *
 				message.Value = message.To
 				message.To = 0
 			}
-			Println("FailureHandler:", message.Type, message.Content, "Value = ", message.Value, "To elev", message.To)
+			Println("\n", "FailureHandler:", message.Type, message.Content, "Value = ", message.Value, "To elev", message.To)
 			networkSend <- message
 		}
 	}

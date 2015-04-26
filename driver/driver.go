@@ -1,7 +1,7 @@
 package driver
 
 import (
-	."fmt"
+	//."fmt"
 	."time"
 	."../network"
 )
@@ -31,14 +31,20 @@ func DriverInit(driverOutChan chan Message, driverInChan chan Message) (bool) {
 		}
 		elevSetButtonLamp("inside", floor, 0)
 	}
+
 	elevSetStopLamp(0)
 	elevSetEngineSpeed("stop")
 	elevSetDoorOpenLamp(0)
 	elevSetFloorIndicator(1)
+
 	inFloor := 0
 	for i := 0; i < N_FLOORS; i++ {
 		if IOReadBit(floorSensors[i]) != 0 {
 			inFloor = 1
+			message.Type = "floorUpdate"
+			message.To = -2
+			message.Floor = i + 1
+			driverOutChan <- message
 		}
 	}
 	if inFloor == 0 {
@@ -46,15 +52,20 @@ func DriverInit(driverOutChan chan Message, driverInChan chan Message) (bool) {
 		message.To = -2
 		message.Content = "down"
 		driverOutChan <- message
+		message.Type = "stateUpdate"
+		message.Content = "MovingDown"
+		driverOutChan <- message
 	} else {
 		message.Type = "command"
 		message.Content = "stop"
 		message.To = -2
 		driverOutChan <- message
+		message.Type = "stateUpdate"
+		message.Content = "Open"
+		driverOutChan <- message
 	}
 	go driverReader(driverOutChan, floorSensors, buttonChannelMatrix)
 	go driverWriter(driverInChan, floorSensors)
-	Println("DriverInit done")
 	return true
 }
 

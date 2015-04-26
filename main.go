@@ -2,6 +2,7 @@ package main
 
 import(
 	."fmt"
+	."time"
 	."./timer"
 	."./driver"
 	."./network"
@@ -26,7 +27,7 @@ func main(){
 	driverInChan := make(chan Message, 10)
 	driverOutChan := make(chan Message, 10)
 	if !DriverInit(driverOutChan, driverInChan){
-		Println("Driver init failed!")
+		Println("\n", "Driver init failed!")
 		return
 	}
 	go FileManager(fileOutChan, fileInChan)
@@ -34,7 +35,9 @@ func main(){
 	go NetworkInit(networkReceive, networkSend, fileOutChan, fileInChan, failureChan)
 	go LiftState(networkReceive, commanderChan, aliveChan, fileOutChan, fileInChan)
 	go CommanderInit(networkSend, commanderChan, aliveChan, tickerChan, timerChan, timeOutChan, driverOutChan, driverInChan, failureChan)
-
+	Println("\n\n\n          --------------------\n          |                  |\n          |   Initializing   |\n          |                  |\n          --------------------\n\n\n")
+	Sleep(1*Second)
+	Println("\n\n\n          --------------------\n          |                  |\n          |       DONE       |\n          |                  |\n          --------------------\n\n\n")
 	select{
 		case <- mainWaitChan:
 	}

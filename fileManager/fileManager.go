@@ -30,7 +30,7 @@ func FileManager(fileOutChan chan Message, fileInChan chan Message) {
 					}
 				case message.Type == "readInside":
 					inside := readInside()
-					//Println(inside)
+					//Println("\n", inside)
 					if message.Floor < len(inside) {
 						message.Value = inside[message.Floor]
 						fileOutChan <- message
@@ -47,18 +47,18 @@ func readInside() []int{
 
 	directory, err := os.Getwd()
     if err != nil {
-        Println(err)
+        Println("\n", err)
         os.Exit(1)
     }
 
 	content, err := ioutil.ReadFile(directory + "/insideOrders.txt")
 	inside := []int{0,0,0,0,0}
 	if err != nil {
-    	Println("Created new insideOrders.txt")
+    	Println("\n", "Created new insideOrders.txt")
 
 		f, err := os.Create(directory + "/insideOrders.txt")
     	if err != nil {
-		    Println("Could not open file location!")
+		    Println("\n", "Could not open file location!")
 		}
 		strOrders := ""
 
@@ -71,7 +71,7 @@ func readInside() []int{
 
     	_, err = f.WriteString(strOrders)
     	if err != nil {
-		    Println("Error while writing to file!")
+		    Println("\n", "Error while writing to file!")
 		}
 
     	// Issue a `Sync` to flush writes to stable storage.
@@ -94,13 +94,13 @@ func writeInside(floor int, value int){
 
 	directory, err := os.Getwd()
     if err != nil {
-        Println(err)
+        Println("\n", err)
         os.Exit(1)
     }
 
 	f, err := os.Create(directory + "/insideOrders.txt")
 	if err != nil {
-	    Println("Could not open file location!")
+	    Println("\n", "Could not open file location!")
 	}
 
 	tempInside[floor] = value;
@@ -116,7 +116,7 @@ func writeInside(floor int, value int){
 
 	_, err = f.WriteString(strOrders)
 	if err != nil {
-	    Println("Error while writing to file!")
+	    Println("\n", "Error while writing to file!")
 	}
 
 	// Issue a `Sync` to flush writes to stable storage.
@@ -129,7 +129,7 @@ func readIP() []string{
 
 	directory, err := os.Getwd()
     if err != nil {
-        Println(err)
+        Println("\n", err)
         os.Exit(1)
     }
 
@@ -137,11 +137,11 @@ func readIP() []string{
 	IPs := []string{}
 
 	if err != nil {
-	    Println("Created new IP.txt")
+	    Println("\n", "Created new IP.txt")
 
 		f, err := os.Create(directory + "/IP.txt")
     	if err != nil {
-		    Println("Could not open file location!")
+		    Println("\n", "Could not open file location!")
 		}
 
     	// Issue a `Sync` to flush writes to stable storage.
@@ -165,13 +165,13 @@ func writeIP(IP string){
 
 	directory, err := os.Getwd()
     if err != nil {
-        Println(err)
+        Println("\n", err)
         os.Exit(1)
     }
 
 	f, err := os.Create(directory + "/IP.txt")
 	if err != nil {
-	    Println("Could not open file location!")
+	    Println("\n", "Could not open file location!")
 	}
 
 	newIP := true
@@ -198,7 +198,7 @@ func writeIP(IP string){
 
 	_, err = f.WriteString(strIPs)
 	if err != nil {
-	    Println("Error while writing to file!")
+	    Println("\n", "Error while writing to file!")
 	}
 
 	// Issue a `Sync` to flush writes to stable storage.

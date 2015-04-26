@@ -11,7 +11,7 @@ func CommanderInit(networkSend chan Message, commanderChan chan Message, aliveCh
 	go commander(commanderChan, networkSend, driverOutChan, driverInChan, timerChan)
 	go masterAliveHandler(tickerChan, timerChan, aliveChan, failureChan)
 	go doorTimeOutHandler(timeOutChan, driverInChan, networkSend)
-	go driverOutputHandler(driverOutChan, driverInChan, networkSend)
+	go driverOutputHandler(driverOutChan, driverInChan, networkSend, commanderChan)
 }
 	
 func commander(commanderChan chan Message, networkSend chan Message, driverOutChan chan Message, driverInChan chan Message, timerChan chan Message) {
@@ -32,13 +32,13 @@ func commander(commanderChan chan Message, networkSend chan Message, driverOutCh
 				if message.Content == "up" {
 					message.Type = "stateUpdate"
 					message.Content = "MovingUp"
-					//Println(message)
+					//Println("\n", message)
 					networkSend <- message
 					message.Content = "up"
 				} else if message.Content == "down" {
 					message.Type = "stateUpdate"
 					message.Content = "MovingDown"
-					//Println(message)
+					//Println("\n", message)
 					networkSend <- message
 					message.Content = "down"
 				} else if message.Content == "stop" {
@@ -71,19 +71,22 @@ func doorTimeOutHandler(timeOutChan chan Message, driverInChan chan Message, net
 
 			message.Type = "stateUpdate"
 			message.Content = "Idle"
-			//Println(message)
+			//Println("\n", message)
 			networkSend <- message
 		}
 	}
 }
 
-func driverOutputHandler(driverOutChan chan Message, driverInChan chan Message, networkSend chan Message) {
+func driverOutputHandler(driverOutChan chan Message, driverInChan chan Message, networkSend chan Message, commanderChan chan Message) {
 	for {
 		select {
 		case message := <- driverOutChan:
 			if message.Content == "floorReached" {
 				message.Type = message.Content
 				driverInChan <- message
+			} else if message.Type == "command" {
+				commanderChan <- message
+				break
 			}
 			switch {
 			case message.Content == "inside" || message.Content == "outsideUp" || message.Content == "outsideDown":
@@ -109,7 +112,7 @@ func masterAliveHandler(tickerChan chan Message, timerChan chan Message, aliveCh
 			notAliveCount++
 			if notAliveCount == 5 {
 				message.Type = "masterOffline"
-				Println("Master is offline!")	
+				Println("\n", "Master is offline!")	
 				failureChan <- message
 			}
 
@@ -123,9 +126,9 @@ func masterAliveBroadcast(networkSend chan Message) {
 	message := Message{}
 	message.Type = "imAlive"
 	message.To = 0
-	Println("Initiating masterAliveBroadcast")
+	Println("\n", "Initiating masterAliveBroadcast")
 	for {
-		Sleep(100 * Millisecond)
 		networkSend <- message
+		Sleep(100 * Millisecond)
 	}
 }
