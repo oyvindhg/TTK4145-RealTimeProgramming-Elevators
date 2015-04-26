@@ -66,7 +66,7 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 				}
 
 			case message.Type == "broadcast":
-				Println("\n", message.Type, message.Content, "Value =", message.Value, "From", message.From, "To", message.To)
+				//Println("\n", message.Type, message.Content, "Value =", message.Value, "From", message.From, "To", message.To)
 				aliveChan <- message
 				
 

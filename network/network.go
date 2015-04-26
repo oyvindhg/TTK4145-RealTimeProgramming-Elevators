@@ -43,16 +43,18 @@ func NetworkInit(networkReceive chan Message, networkSend chan Message, fileOutC
 			}
 		}
 	}
-	
+	j := 1
 	for i := 1; i < ELEV_COUNT + 1; i++ {
+
 		message.Type = "readIP"
 		message.Value = i
 		fileInChan <- message
 		message = <- fileOutChan
 		if message.Content != "noIP" && message.Content != "" {
 			fileEmpty = false
-			IPlist[i] = message.Content
-			Println("Added IP to IPlist", IPlist[i])
+			IPlist[j] = message.Content
+			Println("Added IP to IPlist", IPlist[j], i)
+			j++
 		}
 	}
 	go networkReceiver(networkSend, networkReceive, receivedChannel, fileInChan, fileEmpty, &IPlist)
