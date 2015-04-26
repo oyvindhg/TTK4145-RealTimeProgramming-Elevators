@@ -1,7 +1,7 @@
 package driver
 
 import (
-	//."fmt"
+	."fmt"
 	."time"
 	."../network"
 )
@@ -19,10 +19,11 @@ func DriverInit(driverOutChan chan Message, driverInChan chan Message) (bool) {
 		{BUTTON_UP2, BUTTON_DOWN2, BUTTON_COMMAND2},
 		{BUTTON_UP3, BUTTON_DOWN3, BUTTON_COMMAND3},
 		{BUTTON_UP4, BUTTON_DOWN4, BUTTON_COMMAND4},}
-
+	Println("Yo")
 	if !IOInit() {
 		return false
 	}
+	Println("Jaja")
 	for floor := 1; floor < N_FLOORS + 1; floor++ {
 		if floor != 1 {
 			elevSetButtonLamp("outsideDown", floor, 0)
@@ -56,7 +57,7 @@ func DriverInit(driverOutChan chan Message, driverInChan chan Message) (bool) {
 	}
 	go driverReader(driverOutChan, floorSensors, buttonChannelMatrix)
 	go driverWriter(driverInChan, floorSensors)
-
+	Println("DriverInit done")
 	return true
 }
 

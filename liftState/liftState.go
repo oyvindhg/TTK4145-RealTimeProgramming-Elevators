@@ -15,7 +15,7 @@ type elevator struct {
 func LiftState(networkReceive chan Message, commanderChan chan Message, aliveChan chan Message, fileOutChan chan Message, fileInChan chan Message) {
 
 	message := Message{}
-	elev := make([]elevator, 1, ELEV_COUNT + 1)
+	elev := make([]elevator, ELEV_COUNT + 1)
 	inside 	:= make([]int, FLOOR_COUNT+1)
 	outUp 	:= make([]int, FLOOR_COUNT+1)
 	outDown	:= make([]int, FLOOR_COUNT+1)
@@ -32,53 +32,73 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 			inside[i] = message.Value
 			if message.Value == 1 {
 				message.Type = "newOrder"
-
 				message.Content = "inside"
 				commanderChan <- message
 			}
 		}
 	}
-
+	for i:= range elev {
+		if i == 1 {
+			elev[i].isMaster = true
+		} else {
+			elev[i].isMaster = false
+		}
+		elev[i].state = "Offline"
+		elev[i].floorTarget = 0
+		elev[i].floorNum = 0
+	}
+	Println("LiftStateInit done")
 	for {
 		select {
 		case message = <- networkReceive:
 			switch {
 			case message.Type == "command" || message.Type == "master":
-				Println(message.Type, message.Content, message.From)
+				Println(message.Type, message.Content, "From:", message.From, "To:", message.To)
 				commanderChan <- message
 
 			case message.Type == "imAlive":
 				aliveChan <- message
 
 			case message.Type == "newMaster":
+				Println(message.Type, message.Content, "Value =", message.Value, "From:", message.From, "To:", message.To)
 
 			case message.Type == "findMaster":
+				Println(message.Type, message.Content, "Value =", message.Value, "From:", message.From, "To:", message.To)
 				if elev[message.To].isMaster {
-					for i := 1; i < len(elev)
+					if message.Floor == -1 {
+						for i := 1; i < ELEV_COUNT + 1; i++ {
+							if elev[i].state == "Offline" {
+								message.Value = i
+								break
+							}
+						}
+						message.Type = "addElev"
+						commanderChan <- message
+					}
 
-					message.Value = message.To
-					message.Type = "newMaster"
-					message.To = message.From
-					commanderChan <- message
+
+					/*for i := 1; i < ELEV_COUNT + 1; i++ {
+						message.Type = "newMaster"
+						message.To = message.From
+						commanderChan <- message
+					}*/
 				}
 
 			case message.Type == "addElev":
-				Println("Liftstate:", message.Type, message.Content, "From:", message.From)
-				elev = append(elev, elevator{0, 0, "Idle"})
-				Println("Added elevator", len(elev) - 1, "in elev")
-				Println("Number of elevators is now", len(elev) - 1)
+				Println(message.Type, message.Content, "Value =", message.Value, "From:", message.From, "To:", message.To)
+				elev[message.Value].state = "Idle"
 
 			case message.Type == "elevOffline":
-				Println("Liftstate:", message.Type, message.Value, "From:", message.From)
-				(*elev)[message.Value], (*elev)[len(*elev) - 1] = (*elev)[len(*elev) - 1], (*elev)[message.Value]
-				if message.Value == 1 && message.To == len(*elev) - 1{
+				Println(message.Type, message.Content, "Value =", message.Value, "From:", message.From, "To:", message.To)
+				elev[message.Value].state = "Offline"
+				if message.Value == 1 && message.To == len(elev) - 1{
 					Println("I am to be the new master")
 					message.Type = "master"
 					commanderChan <- message
 				}
 
 			case message.Type == "newOrder":
-				Println("Liftstate:", message.Type, "Floor:", message.Floor, "From:", message.From)
+				Println(message.Type, message.Content, "Value =", message.Value, "From:", message.From, "To:", message.To)
 				if message.To == 1 {
 					bestFloor := FLOOR_COUNT
 					bestElev := 0

@@ -15,21 +15,22 @@ func main(){
 	fileInChan := make(chan Message, 0)
 	fileOutChan := make(chan Message, 0)
 	mainWaitChan := make(chan Message,0)
-	networkSend := make(chan Message, 10)
-	networkReceive := make(chan Message, 10)
-	commanderChan := make(chan Message, 10)
+	networkSend := make(chan Message, 0)
+	networkReceive := make(chan Message, 0)
+	commanderChan := make(chan Message, 0)
 	aliveChan := make(chan Message, 0)
 	timerChan := make(chan Message, 0)
 	tickerChan := make(chan Message, 0)
 	timeOutChan := make(chan Message, 0)
 	failureChan := make(chan Message, 0)
-	driverInChan := make(chan Message, 10)
-	driverOutChan := make(chan Message, 10)
+	driverInChan := make(chan Message, 0)
+	driverOutChan := make(chan Message, 0)
 	Println("Heia!")
 	if !DriverInit(driverOutChan, driverInChan){
 		Println("Driver init failed!")
 		return
 	}
+	Println("Sup")
 	go FileManager(fileOutChan, fileInChan)
 	go Timekeeper(tickerChan, timerChan, timeOutChan)
 	go NetworkInit(networkReceive, networkSend, fileOutChan, fileInChan, failureChan)
@@ -48,15 +49,7 @@ func main(){
 
 Heisen går noen ganger helt feil retning enn det den skal
 
-Fiks un-constant MASTER_INIT_IP som endres i network om ikke master ip tilgjengelig
 
-Fjern buffere
-
-Legg inn commander case i networkSender så den ikke sender til alle
-
-Legg til sjekk etter 1 sekund i commander
-
-Legg inn en count for antall prøvd å sende eller forskjellige stages
 
 Mangler en funksjonalitet for newOrder kostfunksjon for moving states
 
@@ -67,7 +60,11 @@ Kanskje legge til en teller? BRUTE FORCE
 Under utregning kan states og retning og floorNum få prioritetutdeling
 
 
-NB! Antar ingen nettverk oppdeling
+
+
+
+
+NB! Antar ingen nettverksoppdeling
 
 NB! Når ordre for en heis i 4. etasje bestilles opp fra 3. og så 2. til tom kø
 	vil den ikke kjøre ned til 2. etasje først, men fikse kun 3. etasje og går ut ifra
