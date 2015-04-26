@@ -52,12 +52,14 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 		select {
 		case message = <- networkReceive:
 			switch {
-			case message.Type == "command" || message.Type == "master":
+			case message.Type == "command" || message.Type == "master" || message.Type == "cancelMaster":
 				Println("\n", message.Type, message.Content, "From", message.From, "To", message.To)
 				commanderChan <- message
 
-			case message.Type == "imAlive":
+			case message.Type == "broadcast":
+				//Println("\n", message.Type, message.Content, "Value =", message.Value, "From", message.From, "To", message.To)
 				aliveChan <- message
+				
 
 			case message.Type == "newMaster":
 				Println("\n", message.Type, message.Content, "Value =", message.Value, "From", message.From, "To", message.To)
@@ -73,16 +75,21 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 						}
 					}
 					if !masterInitCanceled {
-						message.Type = "master"
 						message.Value = message.To
+						message.Type = "newMaster"
 						commanderChan <- message
 					}
-				}
-				for i := 1; i < ELEV_COUNT + 1; i++ {
-					if i == message.Value {
-						elev[i].isMaster = true
-					} else {
-						elev[i].isMaster = false
+				} else {
+					for i := 1; i < ELEV_COUNT + 1; i++ {
+						if i == message.Value {
+							elev[i].isMaster = true
+						} else {
+							if i == message.To {
+								message.Type = "cancelMaster"
+								commanderChan <- message
+							}
+							elev[i].isMaster = false
+						}
 					}
 				}
 
@@ -139,17 +146,15 @@ func LiftState(networkReceive chan Message, commanderChan chan Message, aliveCha
 				if elev[message.Value].isMaster {
 					nextMaster := 0
 					for i := 1; i < ELEV_COUNT + 1; i++ {
-						if elev[i].state != ("Offline" || "Uninitialized") {
-							nextMaster = (message.Value + i) % (ELEV_COUNT + 1)
+						if elev[i].state != "Offline" && elev[i].state != "Uninitialized" {
+							nextMaster = i
 						}
 					}
+					Println("Nextmaster = ", nextMaster)
 					message.Value = nextMaster
-					if message.To == nextMaster {
-						message.Type = "master"
-						commanderChan <- message
-					}
 					message.Type = "newMaster"
 					message.To = 0
+					Println("Sending newMaster")
 					commanderChan <- message
 				}
 

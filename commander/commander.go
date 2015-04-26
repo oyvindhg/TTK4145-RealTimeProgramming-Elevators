@@ -6,22 +6,26 @@ import (
 	."../network"
 )
 
-func CommanderInit(networkSend chan Message, commanderChan chan Message, aliveChan chan Message, tickerChan chan Message, timerChan chan Message, timeOutChan chan Message, driverOutChan chan Message, driverInChan chan Message, failureChan chan Message) {
+func CommanderInit(networkSend chan Message, commanderChan chan Message, aliveChan chan Message, tickerChan chan Message, timerChan chan Message, timeOutChan chan Message, driverOutChan chan Message, driverInChan chan Message, failureChan chan Message, cancelMasterChan chan Message) {
 	
-	go commander(commanderChan, networkSend, driverOutChan, driverInChan, timerChan)
+	go commander(commanderChan, networkSend, driverOutChan, driverInChan, timerChan, cancelMasterChan)
 	go masterAliveHandler(tickerChan, timerChan, aliveChan, failureChan)
 	go doorTimeOutHandler(timeOutChan, driverInChan, networkSend)
 	go driverOutputHandler(driverOutChan, driverInChan, networkSend, commanderChan)
 	go masterChecker(commanderChan)
 }
 	
-func commander(commanderChan chan Message, networkSend chan Message, driverOutChan chan Message, driverInChan chan Message, timerChan chan Message) {
+func commander(commanderChan chan Message, networkSend chan Message, driverOutChan chan Message, driverInChan chan Message, timerChan chan Message, cancelMasterChan chan Message) {
 	for {
 		select {
 		case message := <- commanderChan:
 			switch {
 			case message.Type == "findMaster" || message.Type == "newMaster" || message.Type == "addElev" || message.Type == "deleteOrder" || message.Type == "newTarget" || message.Type == "floorReached" || message.Type == "targetUpdate" || message.Type == "floorUpdate":
+				Println("COMMANDER")
 				networkSend <- message
+
+			case message.Type == "cancelMaster":
+				cancelMasterChan <- message
 
 			case message.Type == "newOrder":
 				driverOutChan <- message
@@ -56,7 +60,7 @@ func commander(commanderChan chan Message, networkSend chan Message, driverOutCh
 				driverInChan <- message
 
 			case message.Type == "master":
-				go masterAliveBroadcast(networkSend)
+				go masterBroadcast(networkSend, cancelMasterChan)
 			}
 		}
 	}
@@ -124,14 +128,20 @@ func masterAliveHandler(tickerChan chan Message, timerChan chan Message, aliveCh
 	}
 }
 
-func masterAliveBroadcast(networkSend chan Message) {
+func masterBroadcast(networkSend chan Message, cancelMasterChan chan Message) {
 	message := Message{}
-	message.Type = "imAlive"
+	message.Type = "broadcast"
 	message.To = 0
-	Println("\n", "Initiating masterAliveBroadcast")
+	Println("\n", "Initiating masterBroadcast")
 	for {
-		networkSend <- message
-		Sleep(100 * Millisecond)
+		select {
+		case <- cancelMasterChan:
+			Println("\n\n\n\n\nCANCELING MASTER MOAHAHAHAHAHHHH\n\n\n\n\n")
+			return
+		default:
+			networkSend <- message
+			Sleep(100 * Millisecond)
+		}
 	}
 }
 

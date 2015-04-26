@@ -16,6 +16,7 @@ func FileManager(fileOutChan chan Message, fileInChan chan Message) {
 		case message := <- fileInChan:
 			switch{
 				case message.Type == "writeIP":
+					message.Content = strings.TrimRight(message.Content, "offline")
 					writeIP(message.Content)
 				case message.Type == "writeInside":
 					writeInside(message.Floor, message.Value)

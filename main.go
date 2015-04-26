@@ -13,19 +13,21 @@ import(
 
 func main(){
 
-	fileInChan := make(chan Message, 0)
-	fileOutChan := make(chan Message, 0)
-	mainWaitChan := make(chan Message, 0)
+	fileInChan := make(chan Message)
+	fileOutChan := make(chan Message)
+	mainWaitChan := make(chan Message)
 	networkSend := make(chan Message, 10)
 	networkReceive := make(chan Message, 10)
+	cancelMasterChan := make(chan Message)
 	commanderChan := make(chan Message, 10)
-	aliveChan := make(chan Message, 10)
-	timerChan := make(chan Message, 0)
-	tickerChan := make(chan Message, 0)
-	timeOutChan := make(chan Message, 0)
-	failureChan := make(chan Message, 0)
-	driverInChan := make(chan Message, 10)
 	driverOutChan := make(chan Message, 10)
+	driverInChan := make(chan Message, 10)
+	aliveChan := make(chan Message)
+	timerChan := make(chan Message)
+	tickerChan := make(chan Message)
+	timeOutChan := make(chan Message)
+	failureChan := make(chan Message)
+	
 	if !DriverInit(driverOutChan, driverInChan){
 		Println("\n", "Driver init failed!")
 		return
@@ -34,7 +36,7 @@ func main(){
 	go Timekeeper(tickerChan, timerChan, timeOutChan)
 	go NetworkInit(networkReceive, networkSend, fileOutChan, fileInChan, failureChan)
 	go LiftState(networkReceive, commanderChan, aliveChan, fileOutChan, fileInChan)
-	go CommanderInit(networkSend, commanderChan, aliveChan, tickerChan, timerChan, timeOutChan, driverOutChan, driverInChan, failureChan)
+	go CommanderInit(networkSend, commanderChan, aliveChan, tickerChan, timerChan, timeOutChan, driverOutChan, driverInChan, failureChan, cancelMasterChan)
 	Println("\n\n\n          --------------------\n          |                  |\n          |   Initializing   |\n          |                  |\n          --------------------\n\n\n")
 	Sleep(1050*Millisecond)
 	Println("\n\n\n          --------------------\n          |                  |\n          |       DONE       |\n          |                  |\n          --------------------\n\n\n")
@@ -67,7 +69,7 @@ NETTVERK
 
 Fiks at message.To ikke blir satt i networkSender hvis det ikke trengs
 
-
+Enum for message.To osv
 
 LEGG TIL ORDREPAKKE UNDER FINDMASTER I LIFTSTATE
 
@@ -75,7 +77,7 @@ LEGG TIL ORDREPAKKE UNDER FINDMASTER I LIFTSTATE
 
 
 
-
+NB! Vi antar at vi alltid kan starte alle tre heisene mens master er i live
 
 NB! Sjekk om elevOffline kan sendes etter evelOnline under oppstart
 

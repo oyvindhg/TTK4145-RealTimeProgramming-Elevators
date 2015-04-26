@@ -54,18 +54,9 @@ func NetworkInit(networkReceive chan Message, networkSend chan Message, fileOutC
 			IPlist[i] = message.Content
 		}
 	}
-	if fileEmpty && IPlist[0] == MASTER_INIT_IP {
-		message.Type = "master"
-		message.To = -2
-		go startAliveBroadcast(message, networkSend)
-	}
 	go networkReceiver(networkSend, networkReceive, receivedChannel, fileInChan, fileEmpty, &IPlist)
 	go networkSender(networkSend, failureChan, fileEmpty, &IPlist)
 	go failureHandler(networkSend, failureChan, &IPlist)
-}
-
-func startAliveBroadcast(message Message, networkSend chan Message) {
-	networkSend <- message
 }
 
 func listen(receivedChannel chan Message) {
@@ -111,14 +102,18 @@ func send(message Message, IPlist[] string, networkSend chan Message, failureCha
 		recipient = MASTER_INIT_IP
 	case message.To > 0:
 		recipient = IPlist[message.To]
-		if recipient == "Uninitialized" || Contains(recipient, "offline") {
+		if recipient == "Uninitialized" || (message.Type != "broadcast" && Contains(recipient, "offline")) {
 			return
 		}
 	}
-	connection, error := net.DialTimeout("tcp", recipient+ PORT, Duration(100)*Millisecond)
+	Println(message)
+	dialAddress := recipient
+	connection, error := net.DialTimeout("tcp", TrimRight(dialAddress, "offline")+ PORT, Duration(100)*Millisecond)
 	if error != nil {
 		if message.From == message.To {
 			connection, _ = net.Dial("tcp", "localhost"+ PORT)
+		} else if message.Type == "broadcast" && Contains(recipient, "offline"){
+			return
 		} else {
 			Println("\n", "Send connection error: ", error)
 			message.Type = "connectionFailure"
@@ -171,9 +166,6 @@ func networkSender(networkSend chan Message, failureChan chan Message, fileEmpty
 			case message.Type == "floorReached":
 				message.To = -2
 			}
-			if message.Type == "addElev" {
-				Println("\n Sending", message)
-			}
 			if message.To == 0 {
 				for i := 1; i < ELEV_COUNT + 1; i++ {
 					if !(message.Type == "elevOffline" && message.Value == i) {
@@ -193,6 +185,16 @@ func networkReceiver(networkSend chan Message, networkReceive chan Message, rece
 		select{
 		case message := <- receivedChannel:
 			switch{
+			case message.Type == "broadcast":
+				if Contains((*IPlist)[message.From], "offline") {
+					Println("RESOLVING AND STUFF", message)
+					message.Type = "elevOnline"
+					message.To = 0
+					message.Value = message.From
+					networkSend <- message
+					break
+				}
+
 			case message.Type == "addElev":
 				alreadyAddedIndex := 0
 				for i := 1; i < ELEV_COUNT + 1; i++ {
@@ -215,9 +217,11 @@ func networkReceiver(networkSend chan Message, networkReceive chan Message, rece
 						(*IPlist)[message.Value] = message.Content
 						Println("\n", *IPlist)
 					}
-					message.Type = "writeIP"
-					fileInChan <- message
-					message.Type = "addElev"
+					if message.Content != "Uninitialized" {
+						message.Type = "writeIP"
+						fileInChan <- message
+						message.Type = "addElev"
+					}
 				}
 
 			case message.Type == "findMaster":
@@ -257,7 +261,9 @@ func networkReceiver(networkSend chan Message, networkReceive chan Message, rece
 				(*IPlist)[message.Value] = TrimRight((*IPlist)[message.Value], "offline")
 
 			case message.Type == "elevOffline":
-				(*IPlist)[message.Value] += "offline"
+				if !Contains((*IPlist)[message.Value], "offline") {
+					(*IPlist)[message.Value] += "offline"
+				}
 			}
 			networkReceive <- message
 		}
