@@ -36,8 +36,9 @@ func main(){
 	go LiftState(networkReceive, commanderChan, aliveChan, fileOutChan, fileInChan)
 	go CommanderInit(networkSend, commanderChan, aliveChan, tickerChan, timerChan, timeOutChan, driverOutChan, driverInChan, failureChan)
 	Println("\n\n\n          --------------------\n          |                  |\n          |   Initializing   |\n          |                  |\n          --------------------\n\n\n")
-	Sleep(1*Second)
+	Sleep(1050*Millisecond)
 	Println("\n\n\n          --------------------\n          |                  |\n          |       DONE       |\n          |                  |\n          --------------------\n\n\n")
+
 	select{
 		case <- mainWaitChan:
 	}
@@ -48,9 +49,7 @@ func main(){
 
 -----------------------------           TO DO           -------------------------------------
 
-Heisen går noen ganger helt feil retning enn det den skal
-
-
+KOSTFUNKSJON
 
 Mangler en funksjonalitet for newOrder kostfunksjon for moving states
 
@@ -60,20 +59,31 @@ Kanskje legge til en teller? BRUTE FORCE
 
 Under utregning kan states og retning og floorNum få prioritetutdeling
 
+Heisen går noen ganger helt feil retning enn det den skal
+
+
+
+NETTVERK
+
+Fiks at message.To ikke blir satt i networkSender hvis det ikke trengs
+
+
+
+LEGG TIL ORDREPAKKE UNDER FINDMASTER I LIFTSTATE
 
 
 
 
+
+
+
+NB! Sjekk om elevOffline kan sendes etter evelOnline under oppstart
 
 NB! Antar ingen nettverksoppdeling
 
 NB! Når ordre for en heis i 4. etasje bestilles opp fra 3. og så 2. til tom kø
 	vil den ikke kjøre ned til 2. etasje først, men fikse kun 3. etasje og går ut ifra
 	at de andre heisene fikser duden i 2. etasje
-
-NB! DoorTimer skriver og leser til en samme global variabel kanskje helt samtidig
-
-NB! Mulig deadlock i alive-broadcast init
 
 NB! Mulig deadlock / endless go routine spawn i elevOffline network send
 

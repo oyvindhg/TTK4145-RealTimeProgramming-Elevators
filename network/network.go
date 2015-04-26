@@ -43,7 +43,7 @@ func NetworkInit(networkReceive chan Message, networkSend chan Message, fileOutC
 			}
 		}
 	}
-	/*
+	
 	for i := 1; i < ELEV_COUNT + 1; i++ {
 		message.Type = "readIP"
 		message.Value = i
@@ -53,7 +53,7 @@ func NetworkInit(networkReceive chan Message, networkSend chan Message, fileOutC
 			fileEmpty = false
 			IPlist[i] = message.Content
 		}
-	}*/
+	}
 	if fileEmpty && IPlist[0] == MASTER_INIT_IP {
 		message.Type = "master"
 		message.To = -2
@@ -65,7 +65,6 @@ func NetworkInit(networkReceive chan Message, networkSend chan Message, fileOutC
 }
 
 func startAliveBroadcast(message Message, networkSend chan Message) {
-	Sleep(100 * Millisecond)
 	networkSend <- message
 }
 
@@ -100,61 +99,6 @@ func receive(connection net.Conn, receivedChannel chan Message) {
 	receivedChannel <- message
 }
 
-func networkSender(networkSend chan Message, failureChan chan Message, fileEmpty bool, IPlist *[]string) {
-	for {
-		select {
-		case message := <- networkSend:
-			for i := 1; i < ELEV_COUNT + 1; i++ {
-				if (*IPlist)[0] == (*IPlist)[i] {
-					message.From = i
-					break
-				} else {
-					message.From = 0
-				}
-			}
-			switch{					//0 = all, -1 = MASTER_INIT_IP, -2 = localhost
-			case message.Type == "findMaster":
-				message.Content = (*IPlist)[0]
-				if fileEmpty {
-					message.To = -1
-					if message.Content == MASTER_INIT_IP {
-						message.Value = 1
-					}
-				} else {
-					message.To = 0
-				}
-			case message.Type == "addElev":
-				message.Content = (*IPlist)[message.Value]
-
-			case message.Type == "newMaster":
-				message.To = 0
-			case message.Type == "newOrder" || message.Type == "deleteOrder":
-				if message.Content == "inside" {
-					message.To = -2
-				} else {
-					message.To = 0
-				}
-			case message.Type == "stateUpdate" || message.Type == "targetUpdate":
-				message.To = 0
-			case message.Type == "floorReached":
-				message.To = -2
-			}
-			if message.Type == "addElev" {
-				Println("\n Sending", message)
-			}
-			if message.To == 0 {
-				for i := 1; i < ELEV_COUNT + 1; i++ {
-					if !(message.Type == "elevOffline" && message.Value == i) {
-						message.To = i
-						go send(message, *IPlist, networkSend, failureChan)
-					}
-				}
-			} else {
-				go send(message, *IPlist, networkSend, failureChan)
-			}
-		}
-	}
-}
 
 func send(message Message, IPlist[] string, networkSend chan Message, failureChan chan Message) {
 	recipient := ""
@@ -190,16 +134,71 @@ func send(message Message, IPlist[] string, networkSend chan Message, failureCha
 	connection.Write(byteMessage)
 }
 
+func networkSender(networkSend chan Message, failureChan chan Message, fileEmpty bool, IPlist *[]string) {
+	for {
+		select {
+		case message := <- networkSend:
+			for i := 1; i < ELEV_COUNT + 1; i++ {
+				if (*IPlist)[0] == (*IPlist)[i] {
+					message.From = i
+					break
+				} else {
+					message.From = 0
+				}
+			}
+			switch{					//0 = all, -1 = MASTER_INIT_IP, -2 = localhost
+			case message.Type == "findMaster":
+				message.Content = (*IPlist)[0]
+				if fileEmpty {
+					message.To = -1
+					if message.Content == MASTER_INIT_IP {
+						message.Value = 1
+					}
+				} else {
+					message.To = 0
+				}
+			case message.Type == "addElev":
+				message.Content = (*IPlist)[message.Value]
+
+			case message.Type == "newOrder" || message.Type == "deleteOrder":
+				if message.Content == "inside" {
+					message.To = -2
+				} else {
+					message.To = 0
+				}
+			case message.Type == "stateUpdate" || message.Type == "targetUpdate":
+				message.To = 0
+			case message.Type == "floorReached":
+				message.To = -2
+			}
+			if message.Type == "addElev" {
+				Println("\n Sending", message)
+			}
+			if message.To == 0 {
+				for i := 1; i < ELEV_COUNT + 1; i++ {
+					if !(message.Type == "elevOffline" && message.Value == i) {
+						message.To = i
+						go send(message, *IPlist, networkSend, failureChan)
+					}
+				}
+			} else {
+				go send(message, *IPlist, networkSend, failureChan)
+			}
+		}
+	}
+}
+
 func networkReceiver(networkSend chan Message, networkReceive chan Message, receivedChannel chan Message, fileInChan chan Message, fileEmpty bool, IPlist *[]string) {
 	for{
 		select{
 		case message := <- receivedChannel:
 			switch{
-			case message.Type == "addElev" || message.Type == "findMaster":
+			case message.Type == "addElev":
 				alreadyAddedIndex := 0
 				for i := 1; i < ELEV_COUNT + 1; i++ {
-					if (*IPlist)[i] == message.Content+"offline" {
+					if Contains((*IPlist)[i], message.Content) {
 						alreadyAddedIndex = i
+						break
 					}
 				}
 				if alreadyAddedIndex == 0 {
@@ -216,10 +215,37 @@ func networkReceiver(networkSend chan Message, networkReceive chan Message, rece
 						(*IPlist)[message.Value] = message.Content
 						Println("\n", *IPlist)
 					}
-					//message.Type = "writeIP"
-					//fileInChan <- message
-					//message.Type = "addElev"
-				} else if alreadyAddedIndex > 0 && message.Type == "findMaster" {
+					message.Type = "writeIP"
+					fileInChan <- message
+					message.Type = "addElev"
+				}
+
+			case message.Type == "findMaster":
+				alreadyAddedIndex := 0
+				for i := 1; i < ELEV_COUNT + 1; i++ {
+					if Contains((*IPlist)[i], message.Content) {
+						alreadyAddedIndex = i
+						break
+					}
+				}
+				if alreadyAddedIndex == 0 {
+					if message.Value == 0 {
+						for i := 1; i < ELEV_COUNT + 1; i++ {
+							if (*IPlist)[i] == "Uninitialized" {
+								(*IPlist)[i] = message.Content
+								message.Value = i
+								Println("\n", *IPlist)
+								break
+							}
+						}
+					} else {
+						(*IPlist)[message.Value] = message.Content
+						Println("\n", *IPlist)
+					}
+					message.Type = "writeIP"
+					fileInChan <- message
+					message.Type = "findMaster"
+				} else if alreadyAddedIndex > 0 {
 					message.Type = "elevOnline"
 					message.Value = alreadyAddedIndex
 					message.To = 0
@@ -227,7 +253,6 @@ func networkReceiver(networkSend chan Message, networkReceive chan Message, rece
 					break	
 				}
 				
-
 			case message.Type == "elevOnline":
 				(*IPlist)[message.Value] = TrimRight((*IPlist)[message.Value], "offline")
 
@@ -248,7 +273,7 @@ func failureHandler(networkSend chan Message, failureChan chan Message, IPlist *
 				message.Type = "elevOffline"
 				message.Content = (*IPlist)[1]
 				message.Value = 1
-				message.To = -2
+				message.To = 0
 			case message.Type == "connectionFailure":
 				message.Type = "elevOffline"
 				message.Value = message.To

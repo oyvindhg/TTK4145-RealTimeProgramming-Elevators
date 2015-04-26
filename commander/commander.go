@@ -12,6 +12,7 @@ func CommanderInit(networkSend chan Message, commanderChan chan Message, aliveCh
 	go masterAliveHandler(tickerChan, timerChan, aliveChan, failureChan)
 	go doorTimeOutHandler(timeOutChan, driverInChan, networkSend)
 	go driverOutputHandler(driverOutChan, driverInChan, networkSend, commanderChan)
+	go masterChecker(commanderChan)
 }
 	
 func commander(commanderChan chan Message, networkSend chan Message, driverOutChan chan Message, driverInChan chan Message, timerChan chan Message) {
@@ -19,7 +20,7 @@ func commander(commanderChan chan Message, networkSend chan Message, driverOutCh
 		select {
 		case message := <- commanderChan:
 			switch {
-			case message.Type == "findMaster" || message.Type == "newTarget" || message.Type == "floorReached" || message.Type == "targetUpdate" || message.Type == "floorUpdate" || message.Type == "addElev" || message.Type == "deleteOrder":
+			case message.Type == "findMaster" || message.Type == "newMaster" || message.Type == "addElev" || message.Type == "deleteOrder" || message.Type == "newTarget" || message.Type == "floorReached" || message.Type == "targetUpdate" || message.Type == "floorUpdate":
 				networkSend <- message
 
 			case message.Type == "newOrder":
@@ -100,6 +101,7 @@ func driverOutputHandler(driverOutChan chan Message, driverInChan chan Message, 
 }
 
 func masterAliveHandler(tickerChan chan Message, timerChan chan Message, aliveChan chan Message, failureChan chan Message) {
+	Sleep(1*Second)
 	notAliveCount := 0
 	message := Message{}
 	message.Type = "alive"
@@ -131,4 +133,12 @@ func masterAliveBroadcast(networkSend chan Message) {
 		networkSend <- message
 		Sleep(100 * Millisecond)
 	}
+}
+
+func masterChecker(commanderChan chan Message) {
+	Sleep(1*Second)
+	message := Message{}
+	message.Type = "newMaster"
+	message.Value = 0
+	commanderChan <- message
 }
