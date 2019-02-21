@@ -39,35 +39,3 @@ func main(){
 		case <- mainWaitChan:
 	}
 }
-
-
-/*
-
------------------------------           TO DO           -------------------------------------
-
-Heisen går noen ganger helt feil retning enn det den skal
-
-Floor indicator virker ikke
-
-Heis på vei bort fra etasje - trykker etasjen den var i -> stopper
-
-Heis husker ikke inside orders, iallefall ikke riktig
-
-
-NB! Når ordre for en heis i 4. etasje bestilles opp fra 3. og så 2. til tom kø
-	vil den ikke kjøre ned til 2. etasje først, men fikse kun 3. etasje og går ut ifra
-	at de andre heisene fikser duden i 2. etasje
-
-NB! DoorTimer skriver og leser til en samme global variabel kanskje helt samtidig
-
-NB! Mulig deadlock i alive-broadcast init
-
-NB! Mulig deadlock / endless go routine spawn i elevOffline network send
-
-Message
-Type, Content, Floor, Value, To, From 
-
-Type: "imAlive", "newElev", "newOrder", "deleteOrder", "newTarget", 
-      "stateUpdate", "offline", "command", "floorReached", "signal"
-
-*/
