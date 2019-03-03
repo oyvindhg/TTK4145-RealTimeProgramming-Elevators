@@ -9,4 +9,5 @@
 - Multiple elevators should be more efficient than one
 - An individual elevator should behave sensibly and efficiently
 - The lights and buttons should function as expected
+
 Read a detailed description of all requirements at the [TTK4145 repo](https://github.com/TTK4145/Project#elevator-project).
